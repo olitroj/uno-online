@@ -70,7 +70,16 @@ POST /friends -> Send friend request
   - 201 Created
   - 400 Bad Request
   - 401 Unauthorized
-  - 404 Not found
+  - 404 Not Found
+
+PATCH /friends/{fid} -> Accept/Reject friend request
+- Request: Session token (header), Action (application/x-www-form-urlencoded)
+- Response:
+  - 204 No Content
+  - 400 Bad Request
+  - 401 Unauthorized
+  - 403 Forbidden
+  - 404 Not Found
 
 DELETE /friends/{fid}
 - Request: Session token (header)
@@ -78,7 +87,7 @@ DELETE /friends/{fid}
   - 204 No Content
   - 401 Unauthorized
   - 403 Forbidden
-  - 404 Not found
+  - 404 Not Found
 
 ### Database
 #### Tables:
