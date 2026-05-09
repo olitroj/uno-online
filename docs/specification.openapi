@@ -122,7 +122,7 @@ paths:
   /account:
     get:
       summary: Account page
-      tags: [Account]
+      tags: [Pages]
       security:
         - SessionAuth: []
       responses:
