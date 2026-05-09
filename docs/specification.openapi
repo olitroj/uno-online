@@ -1,0 +1,332 @@
+openapi: 3.0.3
+info:
+  title: UNO Online Multiplayer Card Game REST API
+  version: 1.0.0
+  description: REST API for pages, authentication, account management, friends, and game access
+
+servers:
+  - url: http://localhost:8080
+
+tags:
+  - name: Pages
+  - name: Login
+  - name: Account
+  - name: Friends
+  - name: Game
+
+components:
+  securitySchemes:
+    SessionAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    Session:
+      type: object
+      properties:
+        token:
+          type: string
+
+    Statistics:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [online, offline, ingame]
+        description:
+          type: string
+        wins:
+          type: integer
+        losses:
+          type: integer
+
+    Friend:
+      type: object
+      properties:
+        fid:
+          type: string
+        username:
+          type: string
+        status:
+          type: string
+          enum: [pending, rejected, online, offline, ingame]
+
+paths:
+  /:
+    get:
+      summary: Home page
+      tags: [Pages]
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: Home page
+          content:
+            text/html:
+              schema:
+                type: string
+        "401":
+          description: Unauthorized
+
+  /login:
+    get:
+      summary: Login page
+      tags: [Pages]
+      responses:
+        "200":
+          description: Login page
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /session:
+    post:
+      summary: Create session (login)
+      tags: [Login]
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "201":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+
+    delete:
+      summary: Delete session (logout)
+      tags: [Login]
+      security:
+        - SessionAuth: []
+      responses:
+        "204":
+          description: Logged out
+        "401":
+          description: Unauthorized
+
+  /account:
+    get:
+      summary: Account page
+      tags: [Account]
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: Account page
+          content:
+            text/html:
+              schema:
+                type: string
+        "401":
+          description: Unauthorized
+
+    post:
+      summary: Register account
+      tags: [Account]
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "201":
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "400":
+          description: Bad request
+        "422":
+          description: Unprocessable content
+
+    delete:
+      summary: Delete account
+      tags: [Account]
+      security:
+        - SessionAuth: []
+      responses:
+        "204":
+          description: Account deleted
+        "401":
+          description: Unauthorized
+
+  /account/statistics:
+    get:
+      summary: Get account statistics
+      tags: [Account]
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: Statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Statistics"
+        "401":
+          description: Unauthorized
+
+    patch:
+      summary: Update account statistics
+      tags: [Account]
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Statistics"
+      responses:
+        "204":
+          description: Updated
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "422":
+          description: Unprocessable content
+
+  /friends:
+    get:
+      summary: Get friends list
+      tags: [Friends]
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: Friends list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Friend"
+        "401":
+          description: Unauthorized
+
+    post:
+      summary: Send friend request
+      tags: [Friends]
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [username]
+              properties:
+                username:
+                  type: string
+      responses:
+        "201":
+          description: Request sent
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "404":
+          description: User not found
+
+  /friends/{fid}:
+    patch:
+      summary: Accept or reject friend request
+      tags: [Friends]
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: fid
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [accept, reject]
+      responses:
+        "204":
+          description: Updated
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+    delete:
+      summary: Delete friend
+      tags: [Friends]
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: fid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /game/{gid}:
+    get:
+      summary: Game page (also used for WebSocket upgrade)
+      tags: [Game]
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: gid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Game page
+          content:
+            text/html:
+              schema:
+                type: string
+        "401":
+          description: Unauthorized

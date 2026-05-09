@@ -4,6 +4,13 @@
 ## Specification
 
 ### Endpoints
+#### Home:
+GET / -> Home page
+- Request: Session token (header)
+- Response:
+  - 200 OK, Home page (text/html)
+  - 401 Unauthorized
+
 #### Login:
 GET /login -> Login page
 - Request: N/A
@@ -37,7 +44,13 @@ POST /account -> Register account
   - 400 Bad Request
   - 422 Unprocessable Content
 
-PATCH /account/statistics -> Upsert account statistics
+GET /account/statistics -> Get account statistics
+  - Request: Session token (header)
+  - Response:
+    - 200 OK, Account statistics (application/json)
+    - 401 Unauthorized
+
+PATCH /account/statistics -> Update account statistics
 - Request: Session token (header), Account statistics (application/json)
 - Response:
   - 204 No Content
@@ -51,13 +64,7 @@ DELETE /account -> Delete account
   - 204 No Content
   - 401 Unauthorized
 
-#### Home:
-GET / -> Home page
-- Request: Session token (header)
-- Response:
-  - 200 OK, Home page (text/html)
-  - 401 Unauthorized
-
+#### Friends:
 GET /friends -> Get friends list
 - Request: Session token (header)
 - Response:
@@ -81,13 +88,21 @@ PATCH /friends/{fid} -> Accept/Reject friend request
   - 403 Forbidden
   - 404 Not Found
 
-DELETE /friends/{fid}
+DELETE /friends/{fid} -> Delete friend
 - Request: Session token (header)
 - Response:
   - 204 No Content
   - 401 Unauthorized
   - 403 Forbidden
   - 404 Not Found
+
+#### Game:
+GET /game/{gid} -> Game page
+- Request: Session token (header)
+- Response:
+  - 200 OK, Game page (text/html)
+  - 401 Unauthorized
+- Also used to establish websocket connection between Client and Game Server
 
 ### Database
 #### Tables:
@@ -112,3 +127,6 @@ Friends:
 #### Relation:
 - Accounts -- Statistics (one-to-one)
 - Accounts <-> Accounts (many=to-many via Friends table)
+
+### Architecture
+![Diagram](docs/uno_arch.drawio.svg)
