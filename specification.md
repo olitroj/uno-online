@@ -21,14 +21,13 @@ POST /session -> Logging in
 - Request: Username and password (application/x-www-form-urlencoded)
 - Response:
   - 201 Created, Session token (application/json)
-  - 400 Bad Request
   - 401 Unauthorized
+  - 422 Unprocessable Content
 
 DELETE /session -> Logging out
 - Request: Session token (header)
 - Response:
   - 204 No Content
-  - 401 Unauthorized
 
 #### Account:
 GET /account -> Account page
@@ -54,15 +53,14 @@ PATCH /account/statistics -> Update account statistics
 - Request: Session token (header), Account statistics (application/json)
 - Response:
   - 204 No Content
-  - 400 Bad Request
   - 401 Unauthorized
+  - 403 Forbidden
   - 422 Unprocessable Content
 
 DELETE /account -> Delete account
 - Request: Session token (header)
 - Response:
   - 204 No Content
-  - 401 Unauthorized
 
 #### Friends:
 GET /friends -> Get friends list
@@ -75,18 +73,18 @@ POST /friends -> Send friend request
 - Request: Session token (header), Friend username (application/x-www-form-urlencoded)
 - Response:
   - 201 Created
-  - 400 Bad Request
   - 401 Unauthorized
   - 404 Not Found
+  - 422 Unprocessable Content
 
 PATCH /friends/{fid} -> Accept/Reject friend request
 - Request: Session token (header), Action (application/x-www-form-urlencoded)
 - Response:
   - 204 No Content
-  - 400 Bad Request
   - 401 Unauthorized
   - 403 Forbidden
   - 404 Not Found
+  - 422 Unprocessable Content
 
 DELETE /friends/{fid} -> Delete friend
 - Request: Session token (header)
@@ -95,14 +93,15 @@ DELETE /friends/{fid} -> Delete friend
   - 401 Unauthorized
   - 403 Forbidden
   - 404 Not Found
+  - 422 Unprocessable Content
 
 #### Game:
 GET /game/{gid} -> Game page
 - Request: Session token (header)
 - Response:
+  - 101 Switching Protocols
   - 200 OK, Game page (text/html)
   - 401 Unauthorized
-- Also used to establish websocket connection between Client and Game Server
 
 ### Database
 #### Tables:
