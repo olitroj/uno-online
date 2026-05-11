@@ -41,7 +41,7 @@ POST /account -> Register account
 - Request: Username and password (application/x-www-form-urlencoded)
 - Response:
   - 201 Created, Session token (application/json)
-  - 400 Bad Request
+  - 409 Conflict
   - 422 Unprocessable Content
 
 GET /account/statistics -> Get account statistics

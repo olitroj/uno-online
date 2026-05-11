@@ -157,8 +157,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Session"
-        "400":
-          description: Bad request
+        "409":
+          description: Conflict
         "422":
           description: Unprocessable content
 
