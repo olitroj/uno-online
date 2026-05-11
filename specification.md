@@ -17,14 +17,14 @@ GET /login -> Login page
 - Response:
   - 200 OK, Login page (text/html)
 
-POST /session -> Logging in
+POST /token -> Logging in
 - Request: Username and password (application/x-www-form-urlencoded)
 - Response:
   - 201 Created, Session token (application/json)
   - 401 Unauthorized
   - 422 Unprocessable Content
 
-DELETE /session -> Logging out
+DELETE /token -> Logging out
 - Request: Session token (header)
 - Response:
   - 204 No Content

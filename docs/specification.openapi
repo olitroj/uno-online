@@ -22,12 +22,6 @@ components:
       name: access_token
 
   schemas:
-    Session:
-      type: object
-      properties:
-        token:
-          type: string
-
     Statistics:
       type: object
       properties:
@@ -61,7 +55,7 @@ paths:
         - CookieAuth: []
       responses:
         "200":
-          description: Home page
+          description: OK
           content:
             text/html:
               schema:
@@ -75,15 +69,15 @@ paths:
       tags: [Pages]
       responses:
         "200":
-          description: Login page
+          description: OK
           content:
             text/html:
               schema:
                 type: string
 
-  /session:
+  /token:
     post:
-      summary: Create session (login)
+      summary: Create token (login)
       tags: [Login]
       requestBody:
         required: true
@@ -99,24 +93,30 @@ paths:
                   type: string
       responses:
         "201":
-          description: Session created
-          content:
-            application/json:
+          description: Created
+          headers:
+            Set-Cookie:
+              description: JWT stored in HttpOnly cookie
               schema:
-                $ref: "#/components/schemas/Session"
-        "400":
-          description: Bad request
+                type: string
         "401":
           description: Unauthorized
+        "422":
+          description: Unprocessable content
 
     delete:
-      summary: Delete session (logout)
+      summary: Delete token (logout)
       tags: [Login]
       security:
         - CookieAuth: []
       responses:
         "204":
-          description: Logged out
+          description: No content
+          headers:
+            Set-Cookie:
+              description: Empty string, deletes browser cookie
+              schema:
+                type: string
 
   /account:
     get:
@@ -126,7 +126,7 @@ paths:
         - CookieAuth: []
       responses:
         "200":
-          description: Account page
+          description: OK
           content:
             text/html:
               schema:
@@ -151,11 +151,12 @@ paths:
                   type: string
       responses:
         "201":
-          description: Account created
-          content:
-            application/json:
+          description: OK
+          headers:
+            Set-Cookie:
+              description: JWT stored in HttpOnly cookie
               schema:
-                $ref: "#/components/schemas/Session"
+                type: string
         "409":
           description: Conflict
         "422":
@@ -168,7 +169,7 @@ paths:
         - CookieAuth: []
       responses:
         "204":
-          description: Account deleted
+          description: No content
 
   /account/statistics:
     get:
@@ -178,7 +179,7 @@ paths:
         - CookieAuth: []
       responses:
         "200":
-          description: Statistics
+          description: OK
           content:
             application/json:
               schema:
@@ -199,7 +200,7 @@ paths:
               $ref: "#/components/schemas/Statistics"
       responses:
         "204":
-          description: Updated
+          description: No content
         "401":
           description: Unauthorized
         "403":
@@ -215,7 +216,7 @@ paths:
         - CookieAuth: []
       responses:
         "200":
-          description: Friends list
+          description: OK
           content:
             application/json:
               schema:
@@ -242,11 +243,11 @@ paths:
                   type: string
       responses:
         "201":
-          description: Request sent
+          description: Created
         "401":
           description: Unauthorized
         "404":
-          description: User not found
+          description: Not found
         "422":
           description: Unprocessable content
 
@@ -275,7 +276,7 @@ paths:
                   enum: [accept, reject]
       responses:
         "204":
-          description: Updated
+          description: No content
         "401":
           description: Unauthorized
         "403":
@@ -298,7 +299,7 @@ paths:
             type: string
       responses:
         "204":
-          description: Deleted
+          description: No content
         "401":
           description: Unauthorized
         "403":
@@ -324,7 +325,7 @@ paths:
         "101":
           description: Switching protocols
         "200":
-          description: Game page
+          description: OK
           content:
             text/html:
               schema:
