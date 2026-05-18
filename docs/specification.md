@@ -48,6 +48,7 @@ GET /account/statistics -> Get account statistics
   - Response:
     - 200 OK, Account statistics (application/json)
     - 401 Unauthorized
+    - 404 Not found
 
 PATCH /account/statistics -> Update account statistics
 - Request: Session token (header), Account statistics (application/json)
@@ -55,12 +56,15 @@ PATCH /account/statistics -> Update account statistics
   - 204 No Content
   - 401 Unauthorized
   - 403 Forbidden
+  - 404 Not found
   - 422 Unprocessable Content
 
 DELETE /account -> Delete account
 - Request: Session token (header)
 - Response:
   - 204 No Content
+  - 401 Unauthorized
+  - 404 Not found
 
 #### Friends:
 GET /friends -> Get friends list
@@ -74,7 +78,6 @@ POST /friends -> Send friend request
 - Response:
   - 201 Created
   - 401 Unauthorized
-  - 404 Not Found
   - 422 Unprocessable Content
 
 PATCH /friends/{fid} -> Accept/Reject friend request

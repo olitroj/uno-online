@@ -107,8 +107,6 @@ paths:
     delete:
       summary: Delete token (logout)
       tags: [Login]
-      security:
-        - CookieAuth: []
       responses:
         "204":
           description: No content
@@ -151,7 +149,7 @@ paths:
                   type: string
       responses:
         "201":
-          description: OK
+          description: Created
           headers:
             Set-Cookie:
               description: JWT stored in HttpOnly cookie
@@ -170,6 +168,15 @@ paths:
       responses:
         "204":
           description: No content
+          headers:
+            Set-Cookie:
+              description: Empty string, deletes browser cookie
+              schema:
+                type: string
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
 
   /account/statistics:
     get:
@@ -186,6 +193,8 @@ paths:
                 $ref: "#/components/schemas/Statistics"
         "401":
           description: Unauthorized
+        "404":
+          description: Not found
 
     patch:
       summary: Update account statistics
@@ -205,6 +214,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
         "422":
           description: Unprocessable content
 
@@ -246,8 +257,6 @@ paths:
           description: Created
         "401":
           description: Unauthorized
-        "404":
-          description: Not found
         "422":
           description: Unprocessable content
 

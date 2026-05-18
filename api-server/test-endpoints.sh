@@ -1,9 +1,12 @@
+failed_tests=0
+
 function pass() {
     echo -e "  $1 - \033[0;32mPASS\033[0m"
 }
 
 function fail() {
     echo -e "  $1 - \033[0;31mFAIL\033[0m"
+    failed_tests++
 }
 
 function assert_eq() {
@@ -109,3 +112,7 @@ assert_null "No cookie" "$(header set-cookie)"
 result=$(curl -s -i -X DELETE -H "$header" $HOST_NAME/token)
 assert_eq "Code 204" "$(code)" 204
 assert_eq "Unset cookie" "$(header set-cookie)" "access_token=\"\"*"
+
+echo "----------------------------"
+echo "Failed tests: $failed_tests"
+echo "----------------------------"
