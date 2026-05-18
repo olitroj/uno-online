@@ -128,4 +128,4 @@ Friends:
 - Accounts <-> Accounts (many=to-many via Friends table)
 
 ### Architecture
-![Diagram](docs/uno_arch.drawio.svg)
+![Diagram](uno_arch.drawio.svg)
