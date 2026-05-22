@@ -1,6 +1,5 @@
 import asyncio
-from asyncpg import create_pool, Pool
-from typing import Type, TypeVar
+from asyncpg import create_pool, Pool, Record
 
 from main import POSTGRES_DB, POSTGRES_USER, POSTGRES_PASS
 
@@ -20,16 +19,13 @@ async def close_db_conn():
     if conn_pool:
         await conn_pool.close()
 
-T = TypeVar("T")
-
-async def db_query_one(cls: Type[T], query: str, *args) -> T | None:
+async def db_query_one(query: str, *args) -> Record | None:
     async with conn_pool.acquire() as conn:
-        result = await conn.fetchrow(query, *args)
-        return cls(**result) if result is not None else None
+        return await conn.fetchrow(query, *args)
 
-async def db_query(cls: Type[T], query: str, *args) -> list[T]:
+async def db_query(query: str, *args) -> list[Record]:
     async with conn_pool.acquire() as conn:
-        return [cls(**dict(r)) for r in await conn.fetch(query, *args)]
+        return await conn.fetch(query, *args)
     
 async def db_execute(query: str, *args):
     async with conn_pool.acquire() as conn:

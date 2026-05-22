@@ -10,7 +10,6 @@ CREATE TABLE Accounts (
     description TEXT,
 );
 
-
 CREATE TABLE participants (
     account_uid UUID NOT NULL,
     game_id UUID NOT NULL,
@@ -25,10 +24,10 @@ CREATE TABLE participants (
 );
 
 CREATE TABLE Games (
-    game_id UUID PRIMARY KEY DEFAULT gen_random_uuid() ,
+    game_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     start_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     end_time TIMESTAMPTZ
-    );
+);
 
 CREATE TABLE Friends (
     status friend_status NOT NULL DEFAULT 'pending',
