@@ -1,11 +1,13 @@
 import os
+import json
 
-JWT_SECRET = "9bxhAgLv4W5PhW4VNglCj4KQjEmLnLZy"
-SESSION_LENGTH = 2*3600
+JWT_NAME        = "access_token"
+JWT_SECRET      = "9bxhAgLv4W5PhW4VNglCj4KQjEmLnLZy"
+SESSION_LENGTH  = 2*3600
 
-POSTGRES_USER = os.environ.get("DB_USER")
-POSTGRES_PASS = os.environ.get("DB_PASS")
-POSTGRES_DB =  os.environ.get("DB_NAME")
+POSTGRES_USER   = os.environ.get("DB_USER")
+POSTGRES_PASS   = os.environ.get("DB_PASS")
+POSTGRES_DB     = os.environ.get("DB_NAME")
 
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
@@ -14,10 +16,22 @@ from src.db import init_db_conn, close_db_conn
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await init_db_conn()
-    yield
-    await close_db_conn()
+    if POSTGRES_DB is not None and POSTGRES_USER is not None and POSTGRES_PASS is not None:
+        await init_db_conn()
+        yield
+        await close_db_conn()
+    else:
+        yield
 
 app = FastAPI(lifespan=lifespan)
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    with open("../docs/specification.json", "r") as f:
+        app.openapi_schema = json.load(f)
+    return app.openapi_schema
+
+app.openapi = custom_openapi
 
 import src.endpoints as endpoints

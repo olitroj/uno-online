@@ -1,0 +1,332 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "UNO Online Multiplayer Card Game REST API",
+    "version": "1.0.0",
+    "description": "REST API for pages, authentication, account management, friends, and game access"
+  },
+  "servers": [
+    { "url": "http://localhost:8000" }
+  ],
+  "tags": [
+    { "name": "Me" },
+    { "name": "Account" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "CookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "access_token"
+      }
+    },
+    "schemas": {
+      "Account": {
+        "type": "object",
+        "properties": {
+          "username": { "type": "string" },
+          "password": { "type": "string" },
+          "status": { "type": "string", "enum": ["online", "offline", "ingame"] },
+          "description": { "type": "string" }
+        }
+      },
+      "AccountInfo": {
+        "type": "object",
+        "properties": {
+          "username": { "type": "string" },
+          "status": { "type": "string", "enum": ["online", "offline", "ingame"] },
+          "description": { "type": "string" },
+          "wins": { "type": "integer" },
+          "losses": { "type": "integer" },
+          "total_score": { "type": "integer" }
+        }
+      },
+      "Game": {
+        "type": "object",
+        "properties": {
+          "start_time": { "type": "integer" },
+          "end_time": { "type": "integer" },
+          "score": { "type": "integer" },
+          "win": { "type": "boolean" }
+        }
+      },
+      "Friend": {
+        "type": "object",
+        "properties": {
+          "account_id": { "type": "string" },
+          "username": { "type": "string" },
+          "status": { "type": "string", "enum": ["pending", "rejected", "accepted"] }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/me": {
+      "post": {
+        "summary": "Register account",
+        "tags": ["Me"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "password"],
+                "properties": {
+                  "username": { "type": "string" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created account",
+            "headers": {
+              "set-cookie": {
+                "description": "Token stored in HttpOnly cookie",
+                "schema": { "type": "string" }
+              }
+            }
+          },
+          "409": { "description": "Conflicting username" }
+        }
+      },
+      "delete": {
+        "summary": "Delete account",
+        "tags": ["Me"],
+        "security": [{ "CookieAuth": [] }],
+        "responses": {
+          "204": {
+            "description": "Deleted account",
+            "headers": {
+              "set-cookie": {
+                "description": "Empty string, clears token in browser cookie",
+                "schema": { "type": "string" }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      },
+      "put": {
+        "summary": "Update account data",
+        "tags": ["Me"],
+        "security": [{ "CookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Account" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Updated account" },
+          "400": { "description": "Status must be 'online', 'offline' or 'ingame'" },
+          "401": { "description": "Unauthorized" },
+          "409": { "description": "Conflicting username" }
+        }
+      }
+    },
+    "/me/token": {
+      "post": {
+        "summary": "Generate token (login)",
+        "tags": ["Me"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "password"],
+                "properties": {
+                  "username": { "type": "string" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generated token",
+            "headers": {
+              "set-cookie": {
+                "description": "Token stored in HttpOnly cookie",
+                "schema": { "type": "string" }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      },
+      "delete": {
+        "summary": "Clear token (logout)",
+        "tags": ["Me"],
+        "responses": {
+          "204": {
+            "description": "Cleared token",
+            "headers": {
+              "set-cookie": {
+                "description": "Empty string, clears token in browser cookie",
+                "schema": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/info": {
+      "get": {
+        "summary": "Get account information",
+        "tags": ["Me"],
+        "security": [{ "CookieAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AccountInfo" }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/me/games": {
+      "get": {
+        "summary": "Get account games",
+        "tags": ["Me"],
+        "security": [{ "CookieAuth": [] }],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "default": 0 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Game" } }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/me/friends": {
+      "get": {
+        "summary": "Get friends list",
+        "tags": ["Me"],
+        "security": [{ "CookieAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Friend" } }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/me/friends/{account_id}": {
+      "post": {
+        "summary": "Send friend request",
+        "tags": ["Me"],
+        "security": [{ "CookieAuth": [] }],
+        "parameters": [
+          { "name": "account_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "201": { "description": "Created friend request" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Not found" }
+        }
+      },
+      "patch": {
+        "summary": "Accept or reject friend request",
+        "tags": ["Me"],
+        "security": [{ "CookieAuth": [] }],
+        "parameters": [
+          { "name": "account_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "OK" },
+          "400": { "description": "Action must be 'accept' or 'reject'" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Not found" }
+        }
+      },
+      "delete": {
+        "summary": "Delete friend",
+        "tags": ["Me"],
+        "security": [{ "CookieAuth": [] }],
+        "parameters": [
+          { "name": "account_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "204": { "description": "Deleted friend" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/account/info/{account_id}": {
+      "get": {
+        "summary": "Get account information",
+        "tags": ["Account"],
+        "security": [{ "CookieAuth": [] }],
+        "parameters": [
+          { "name": "account_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AccountInfo" }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Forbidden" },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/account/games/{account_id}": {
+      "get": {
+        "summary": "Get account games",
+        "tags": ["Account"],
+        "security": [{ "CookieAuth": [] }],
+        "parameters": [
+          { "name": "account_id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 0 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Game" } }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Forbidden" },
+          "404": { "description": "Not found" }
+        }
+      }
+    }
+  }
+}
