@@ -33,6 +33,5 @@ class Game(BaseModel):
     win         : bool
 
 class Friend(BaseModel):
-    account_id  : str
     username    : str
     status      : FriendStatus
