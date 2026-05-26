@@ -1,4 +1,3 @@
-import asyncio
 from asyncpg import create_pool, Pool, Record
 
 from main import POSTGRES_DB, POSTGRES_USER, POSTGRES_PASS
@@ -27,6 +26,6 @@ async def db_query(query: str, *args) -> list[Record]:
     async with conn_pool.acquire() as conn:
         return await conn.fetch(query, *args)
     
-async def db_execute(query: str, *args):
+async def db_execute(query: str, *args) -> str:
     async with conn_pool.acquire() as conn:
-        await conn.execute(query, *args)
+        return await conn.execute(query, *args)

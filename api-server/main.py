@@ -34,4 +34,4 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
-import src.endpoints as endpoints
+import src.endpoints

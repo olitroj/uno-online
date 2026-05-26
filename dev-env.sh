@@ -34,10 +34,22 @@ start_api_server() {
     uvicorn main:app --reload
 }
 
+start_api_server_tests() {
+    cd ./api-server
+    echo "Starting api-server tests..."
+    pytest
+}
 
-
-if [[ "$1" != "--no-db" ]]; then
-    start_db
+action=0
+for arg in "$@"; do
+    if [[ "$arg" == "--db" ]]; then
+        start_db
+    elif [[ "$arg" == "--test" ]]; then
+        action=1
+    fi
+done
+if [[ $action -eq 0 ]]; then
+    start_api_server
+elif [[ $action -eq 1 ]]; then
+    start_api_server_tests
 fi
-
-start_api_server

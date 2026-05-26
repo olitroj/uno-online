@@ -3,3 +3,7 @@ python-multipart == 0.0.*
 asyncpg == 0.31.*
 pyjwt == 2.12.*
 uvicorn == 0.46.*
+
+# For testing
+pytest == 9.0.*
+httpx == 0.28.*
