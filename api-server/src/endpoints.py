@@ -1,10 +1,15 @@
-from fastapi import Form, Depends, HTTPException, Response
+from fastapi import Form, Depends, HTTPException, Request, Response
 from hashlib import sha256
 from asyncpg import UniqueViolationError
 from main import app
 from .db import db_query_one, db_query, db_execute
-from .auth import generate_jwt, get_current_user, JWT_NAME
+from .auth import generate_jwt, validate_jwt, JWT_NAME
 
+def get_current_user(req: Request) -> str:
+    try:
+        return validate_jwt(req.cookies.get(JWT_NAME))
+    except:
+        raise HTTPException(401)
 
 @app.post("/me")
 async def post_me(username: str = Form(), password: str = Form()):

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export JWT_NAME="access_token"
-export JWT_SECRET="9bxhAgLv4W5PhW4VNglCj4KQjEmLnLZy"
+export JWT_SECRET="9bxhAgLv4W5PhW4VNglCj4KQjEmLnLZy" # Temporary for development, don't worry ;)
 export JWT_SESSION_LENGTH=7200
 
 start_db() {
