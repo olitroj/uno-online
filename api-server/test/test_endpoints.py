@@ -1,10 +1,11 @@
 from fastapi.testclient import TestClient
+from asyncpg import UniqueViolationError
 from unittest.mock import AsyncMock, patch
 
 from src.endpoints import *
-from src.auth import validate_jwt
+from src.auth import validate_jwt, JWT_NAME
 
-from main import app, JWT_NAME
+from main import app
 client = TestClient(app)
 
 def clear_cookies():
@@ -30,7 +31,7 @@ def test_post_me_201():
 
 def test_post_me_409():
     clear_cookies()
-    with patch("src.endpoints.db_query_one", new=AsyncMock(side_effect=Exception("username exists"))):
+    with patch("src.endpoints.db_query_one", new=AsyncMock(side_effect=UniqueViolationError("username exists"))):
         res = client.post("/me", data={
             "username": "john",
             "password": "12345"
