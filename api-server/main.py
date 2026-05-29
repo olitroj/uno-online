@@ -23,7 +23,7 @@ app = FastAPI(lifespan=lifespan)
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
-    with open("docs/rest_specification.json", "r") as f:
+    with open("../docs/rest_specification.json", "r") as f:
         app.openapi_schema = json.load(f)
     return app.openapi_schema
 
