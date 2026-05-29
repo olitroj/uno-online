@@ -1,16 +1,11 @@
 import os
 import json
-
-JWT_NAME        = "access_token"
-JWT_SECRET      = "9bxhAgLv4W5PhW4VNglCj4KQjEmLnLZy"
-SESSION_LENGTH  = 2*3600
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
 
 POSTGRES_USER   = os.environ.get("DB_USER")
 POSTGRES_PASS   = os.environ.get("DB_PASS")
 POSTGRES_DB     = os.environ.get("DB_NAME")
-
-from fastapi import FastAPI
-from contextlib import asynccontextmanager
 
 from src.db import init_db_conn, close_db_conn
 
@@ -28,7 +23,7 @@ app = FastAPI(lifespan=lifespan)
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
-    with open("../docs/specification.json", "r") as f:
+    with open("docs/rest_specification.json", "r") as f:
         app.openapi_schema = json.load(f)
     return app.openapi_schema
 

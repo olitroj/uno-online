@@ -1,8 +1,11 @@
-from fastapi import Request, HTTPException
 import jwt
 import time
+import os
+from fastapi import Request, HTTPException
 
-from main import JWT_SECRET, SESSION_LENGTH, JWT_NAME
+JWT_NAME            = os.environ.get("JWT_NAME")
+JWT_SECRET          = os.environ.get("JWT_SECRET")
+JWT_SESSION_LENGTH  = int(os.environ.get("JWT_SESSION_LENGTH"))
 
 def get_current_user(req: Request) -> str:
     return validate_jwt(req.cookies.get(JWT_NAME))
@@ -10,7 +13,7 @@ def get_current_user(req: Request) -> str:
 def generate_jwt(account_id: str):
     payload = {
         "account_id": account_id,
-        "expires": int(time.time()) + SESSION_LENGTH
+        "expires": int(time.time()) + JWT_SESSION_LENGTH
     }
     return jwt.encode(payload, JWT_SECRET, "HS256")
 

@@ -1,6 +1,6 @@
 from fastapi import Form, Depends, HTTPException, Response
 from hashlib import sha256
-
+from asyncpg import UniqueViolationError
 from main import app
 from .db import db_query_one, db_query, db_execute
 from .auth import generate_jwt, get_current_user, JWT_NAME
@@ -10,12 +10,8 @@ from .auth import generate_jwt, get_current_user, JWT_NAME
 async def post_me(username: str = Form(), password: str = Form()):
     password_hash = sha256(password.encode()).hexdigest()
     try:
-        account_id = await db_query_one(
-            "INSERT INTO Accounts (username, password_hash) VALUES ($1, $2) RETURNING account_id;",
-            username,
-            password_hash,
-        )
-    except:
+        account_id = await db_query_one("INSERT INTO Accounts (username, password_hash) VALUES ($1, $2) RETURNING account_id;", username, password_hash)
+    except UniqueViolationError:
         raise HTTPException(409, "Conflicting username")
     token = generate_jwt(str(account_id.get("account_id")))
     res = Response(status_code=201)

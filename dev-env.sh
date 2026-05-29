@@ -1,5 +1,9 @@
 #!/bin/bash
 
+export JWT_NAME="access_token"
+export JWT_SECRET="9bxhAgLv4W5PhW4VNglCj4KQjEmLnLZy"
+export JWT_SESSION_LENGTH=7200
+
 start_db() {
     export DB_USER="test_user"
     export DB_PASS="test_password"
@@ -29,27 +33,46 @@ start_db() {
 }
 
 start_api_server() {
-    cd ./api-server
     echo "Starting api-server..."
-    uvicorn main:app --reload
-}
-
-start_api_server_tests() {
     cd ./api-server
-    echo "Starting api-server tests..."
-    pytest
+    uvicorn main:app --reload
+    cd ..
 }
 
-action=0
-for arg in "$@"; do
-    if [[ "$arg" == "--db" ]]; then
+setup() {
+    python -m venv .venv
+    source .venv/Scripts/activate
+    pip install -r ./api-server/requirements.txt -r ./game-server/requirements.txt
+}
+
+start() {
+    if [[ "$2" == "--db" ]]; then
         start_db
-    elif [[ "$arg" == "--test" ]]; then
-        action=1
     fi
-done
-if [[ $action -eq 0 ]]; then
-    start_api_server
-elif [[ $action -eq 1 ]]; then
-    start_api_server_tests
+
+    if [[ "$1" == "api" ]]; then
+        start_api_server
+    elif [[ "$1" == "game" ]]; then
+        echo "Starting game-server"
+        cd ./game-server
+        python main.py
+        cd ..
+    fi
+}
+
+if [[ "$1" == "setup" ]]; then
+    setup
+elif [[ "$1" == "start" ]]; then
+    start "$2" "$3"
+elif [[ "$1" == "test" ]]; then
+    pytest
+else
+    echo "usage: ./dev-env.sh [setup|run|test] [api|game] [--db]"
+    echo -e "\tsetup - Creates venv, download dependencies"
+    echo -e "\trun - Run one of the following components"
+    echo -e "\t\t- api - REST API server"
+    echo -e "\t\t- game - Game server"
+    echo -e "\ttest - Run unit tests"
+    echo "Flags:"
+    echo -e "\t--db - Run a PostgreSQL container alongside run command"
 fi
