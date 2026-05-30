@@ -17,11 +17,12 @@ async def connection_handler(ws: websockets.ServerConnection):
             await ws.send(ERROR_UNAUTHORIZED.json())
             print("CONNECTION: closed by server: Unauthorized")
             return
-        player = await add_player(ws, account_id)
-        if player is None:
-            await ws.send(ERROR_LOBBY_FULL.json())
-            print("CONNECTION: closed by server: Lobby full")
+        result = await add_player(ws, account_id)
+        if not isinstance(result, Player):
+            await ws.send(result.json())
+            print(f"CONNECTION: closed by server: {result.details.get("message")}")
             return
+        player = result
         
         print("CONNECTION: opened")
         join_event = Event(eventType=EventType.PLAYER_JOIN, messageType=MsgType.REQUEST, details={"player": player})
@@ -31,7 +32,7 @@ async def connection_handler(ws: websockets.ServerConnection):
             try:
                 request_event = Event.model_validate_json(payload)
                 if request_event.eventType != EventType.PLAY_CARD:
-                    continue
+                    raise
             except:
                 await ws.send(ERROR_NOT_VALID_EVENT.json())
                 continue
@@ -57,17 +58,21 @@ def authenticate(ws: websockets.ServerConnection):
 # TODO : Check if the connection for that player already exists - Don't allow one player two connections
 async def add_player(ws: websockets.ServerConnection, username: str):
     await state_lock.acquire()
-    if len(game_state.players) < game_state.config.max_players:
-        connections.add(ws)
-        global next_player_id
-        player = Player(next_player_id, username, 0)
-        next_player_id += 1
-        game_state.players.append(player)
+    if len(game_state.players) >= game_state.config.max_players:
         state_lock.release()
-        return player
-    else:
+        return ERROR_LOBBY_FULL
+    elif game_state.stage != Stages.INTERMISSION:
         state_lock.release()
-        return None
+        return ERROR_GAME_STARTED
+    
+    connections.add(ws)
+    global next_player_id
+    player = Player(next_player_id, username, 0)
+    next_player_id += 1
+    game_state.players.append(player)
+    state_lock.release()
+    return player
+
 
 # TODO : Remove player hand as well
 async def remove_player(ws: websockets.ServerConnection, player: Player):

@@ -8,7 +8,6 @@ start_db() {
     export DB_USER="test_user"
     export DB_PASS="test_password"
     export DB_NAME="uno_db"
-    export HOST_NAME="localhost:8000"
 
     echo "Starting PostgreSQL..."
 
@@ -28,6 +27,7 @@ start_db() {
 }
 
 start_api_server() {
+    export SPEC_PATH="../docs/rest_specification.json"
     echo "Starting api-server..."
     cd ./api-server
     uvicorn main:app --reload

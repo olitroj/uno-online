@@ -40,3 +40,4 @@ async def event_handler(event: Event, sender: websockets.ServerConnection = None
             for ws in connections:
                 await ws.send(event.json())
         state_lock.release()
+        print("GAME: game started")

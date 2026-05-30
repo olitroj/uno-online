@@ -18,7 +18,14 @@ async def lifespan(app: FastAPI):
     else:
         yield
 
-app = FastAPI(lifespan=lifespan)
+SPEC_PATH = os.environ.get("SPEC_PATH")
+
+app = FastAPI(
+    lifespan=lifespan,
+    openapi_url="/openapi.json" if SPEC_PATH else None,
+    docs_url="/docs" if SPEC_PATH else None,
+    redoc_url="/redoc" if SPEC_PATH else None,
+)
 
 def custom_openapi():
     if app.openapi_schema:
@@ -27,6 +34,7 @@ def custom_openapi():
         app.openapi_schema = json.load(f)
     return app.openapi_schema
 
-app.openapi = custom_openapi
+if SPEC_PATH:
+    app.openapi = custom_openapi
 
 import src.endpoints

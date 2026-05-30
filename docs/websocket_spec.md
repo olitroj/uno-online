@@ -2,11 +2,11 @@
 
 ## Event Object
 
-All communication between Clients and Server is done via Event Objects. Each event has an eventType, msgType and details related to the event. The eventType indicates the action performed, and the msgType refers to whether the message is a request (client -> server) or a response (server -> client).
+All communication between Clients and Server is done via Event Objects. Each event has an eventType, messageType and details related to the event. The eventType indicates the action performed, and the msgType refers to whether the message is a request (client -> server) or a response (server -> client).
 ```json
 {
     "eventType": events,
-    "msgType": types,
+    "messageType": types,
     "details": {...}
 }
 ```
@@ -113,9 +113,6 @@ DREW_CARDS : {
 GAME_END : {
     // Response
     "leaderboard": [Player]
-}
-GAME_RESTART : {
-    // Response
 }
 ERROR : {
     // Response
