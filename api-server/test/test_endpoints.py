@@ -116,7 +116,7 @@ def test_post_me_friends_201():
     mock_query_result = {"account_id": "bcdefgh-ijklmnop"}
     with patch("src.endpoints.db_query_one", new=AsyncMock(return_value=mock_query_result)):
         with patch("src.endpoints.db_execute", new=AsyncMock()):
-            res = client.post("/me/friends/bcdefgh-ijklmnop")
+            res = client.post("/me/friends/jane")
 
     assert res.status_code == 201
 
@@ -124,7 +124,7 @@ def test_post_me_friends_401():
     clear_cookies()
     with patch("src.endpoints.db_query_one", new=AsyncMock(return_value=None)):
         with patch("src.endpoints.db_execute", new=AsyncMock()):
-            res = client.post("/me/friends/bcdefgh-ijklmnop")
+            res = client.post("/me/friends/jane")
 
     assert res.status_code == 401
 
@@ -132,7 +132,7 @@ def test_post_me_friends_404():
     set_valid_cookie()
     with patch("src.endpoints.db_query_one", new=AsyncMock(return_value=None)):
         with patch("src.endpoints.db_execute", new=AsyncMock()):
-            res = client.post("/me/friends/bcdefgh-ijklmnop")
+            res = client.post("/me/friends/jane")
 
     assert res.status_code == 404
 
@@ -141,17 +141,20 @@ def test_post_me_friends_self_404():
     mock_query_result = {"account_id": "abcdefg-hijklmnop"}
     with patch("src.endpoints.db_query_one", new=AsyncMock(return_value=mock_query_result)):
         with patch("src.endpoints.db_execute", new=AsyncMock()):
-            res = client.post("/me/friends/abcdefg-hijklmnop")
+            res = client.post("/me/friends/john")
 
     assert res.status_code == 404
 
 def test_patch_me_friends_accept_200():
     set_valid_cookie()
-    mock_query_result = {"status": "pending"}
+    mock_query_results = [
+        {"account_id": "bcdefgh-ijklmnop"},
+        {"status": "pending"},
+    ]
     mock_execute = AsyncMock()
-    with patch("src.endpoints.db_query_one", new=AsyncMock(return_value=mock_query_result)):
+    with patch("src.endpoints.db_query_one", new=AsyncMock(side_effect=mock_query_results)):
         with patch("src.endpoints.db_execute", new=mock_execute):
-            res = client.patch("/me/friends/bcdefgh-ijklmnop", data={
+            res = client.patch("/me/friends/jane", data={
                 "action": "accept"
             })
 
@@ -160,11 +163,14 @@ def test_patch_me_friends_accept_200():
 
 def test_patch_me_friends_reject_200():
     set_valid_cookie()
-    mock_query_result = {"status": "pending"}
+    mock_query_results = [
+        {"account_id": "bcdefgh-ijklmnop"},
+        {"status": "pending"},
+    ]
     mock_execute = AsyncMock()
-    with patch("src.endpoints.db_query_one", new=AsyncMock(return_value=mock_query_result)):
+    with patch("src.endpoints.db_query_one", new=AsyncMock(side_effect=mock_query_results)):
         with patch("src.endpoints.db_execute", new=mock_execute):
-            res = client.patch("/me/friends/bcdefgh-ijklmnop", data={
+            res = client.patch("/me/friends/jane", data={
                 "action": "reject"
             })
 
@@ -175,7 +181,7 @@ def test_patch_me_friends_400():
     set_valid_cookie()
     with patch("src.endpoints.db_query_one", new=AsyncMock(return_value={"status": "pending"})):
         with patch("src.endpoints.db_execute", new=AsyncMock()):
-            res = client.patch("/me/friends/bcdefgh-ijklmnop", data={
+            res = client.patch("/me/friends/jane", data={
                 "action": "maybe"
             })
 
@@ -185,7 +191,7 @@ def test_patch_me_friends_401():
     clear_cookies()
     with patch("src.endpoints.db_query_one", new=AsyncMock(return_value={"status": "pending"})):
         with patch("src.endpoints.db_execute", new=AsyncMock()):
-            res = client.patch("/me/friends/bcdefgh-ijklmnop", data={
+            res = client.patch("/me/friends/jane", data={
                 "action": "accept"
             })
 
@@ -195,7 +201,7 @@ def test_patch_me_friends_404():
     set_valid_cookie()
     with patch("src.endpoints.db_query_one", new=AsyncMock(return_value=None)):
         with patch("src.endpoints.db_execute", new=AsyncMock()):
-            res = client.patch("/me/friends/bcdefgh-ijklmnop", data={
+            res = client.patch("/me/friends/jane", data={
                 "action": "accept"
             })
 
@@ -203,11 +209,14 @@ def test_patch_me_friends_404():
 
 def test_delete_me_friends_204():
     set_valid_cookie()
-    mock_query_result = {"status": "accepted"}
+    mock_query_results = [
+        {"account_id": "bcdefgh-ijklmnop"},
+        {"status": "accepted"},
+    ]
     mock_execute = AsyncMock()
-    with patch("src.endpoints.db_query_one", new=AsyncMock(return_value=mock_query_result)):
+    with patch("src.endpoints.db_query_one", new=AsyncMock(side_effect=mock_query_results)):
         with patch("src.endpoints.db_execute", new=mock_execute):
-            res = client.delete("/me/friends/bcdefgh-ijklmnop")
+            res = client.delete("/me/friends/jane")
 
     assert res.status_code == 204
     mock_execute.assert_awaited_once()
@@ -216,7 +225,7 @@ def test_delete_me_friends_401():
     clear_cookies()
     with patch("src.endpoints.db_query_one", new=AsyncMock(return_value={"status": "accepted"})):
         with patch("src.endpoints.db_execute", new=AsyncMock()):
-            res = client.delete("/me/friends/bcdefgh-ijklmnop")
+            res = client.delete("/me/friends/jane")
 
     assert res.status_code == 401
 
@@ -224,6 +233,6 @@ def test_delete_me_friends_404():
     set_valid_cookie()
     with patch("src.endpoints.db_query_one", new=AsyncMock(return_value=None)):
         with patch("src.endpoints.db_execute", new=AsyncMock()):
-            res = client.delete("/me/friends/bcdefgh-ijklmnop")
+            res = client.delete("/me/friends/jane")
 
     assert res.status_code == 404

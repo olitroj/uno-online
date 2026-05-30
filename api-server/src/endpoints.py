@@ -98,14 +98,21 @@ async def get_me_friends(page: int = 0, account_id: str = Depends(get_current_us
     )
 
 
-@app.post("/me/friends/{account_id}")
-async def post_me_friends(
-    account_id: str, current_account_id: str = Depends(get_current_user)
-):
-    friend = await db_query_one(
-        "SELECT account_id FROM Accounts WHERE account_id=$1;", account_id
+async def get_account_id_by_username(username: str):
+    account = await db_query_one(
+        "SELECT account_id FROM Accounts WHERE username=$1;", username
     )
-    if friend is None or account_id == current_account_id:
+    if account is None:
+        raise HTTPException(404)
+    return str(account.get("account_id"))
+
+
+@app.post("/me/friends/{username}")
+async def post_me_friends(
+    username: str, current_account_id: str = Depends(get_current_user)
+):
+    account_id = await get_account_id_by_username(username)
+    if account_id == current_account_id:
         raise HTTPException(404)
     account_id1 = account_id
     account_id2 = current_account_id
@@ -123,12 +130,15 @@ async def post_me_friends(
     return Response(status_code=201)
 
 
-@app.patch("/me/friends/{account_id}")
+@app.patch("/me/friends/{username}")
 async def patch_me_friends(
-    account_id: str, action: str = Form(), current_account_id: str = Depends(get_current_user)
+    username: str,
+    action: str = Form(),
+    current_account_id: str = Depends(get_current_user),
 ):
     if action != "accept" and action != "reject":
         raise HTTPException(400, "Action must be 'accept' or 'reject'")
+    account_id = await get_account_id_by_username(username)
     account_id1 = account_id
     account_id2 = current_account_id
     if current_account_id < account_id:
@@ -153,10 +163,11 @@ async def patch_me_friends(
     return Response(status_code=200)
 
 
-@app.delete("/me/friends/{account_id}")
+@app.delete("/me/friends/{username}")
 async def delete_me_friends(
-    account_id: str, current_account_id: str = Depends(get_current_user)
+    username: str, current_account_id: str = Depends(get_current_user)
 ):
+    account_id = await get_account_id_by_username(username)
     account_id1 = account_id
     account_id2 = current_account_id
     if current_account_id < account_id:
