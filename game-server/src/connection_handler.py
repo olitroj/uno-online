@@ -1,7 +1,6 @@
 import asyncio
 import websockets
 import http.cookies as cookies
-from .events import *
 from .objects import *
 from .event_handler import event_handler
 from .auth import validate_jwt, JWT_NAME

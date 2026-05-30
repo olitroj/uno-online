@@ -1,6 +1,5 @@
 import asyncio
 import random
-from .events import *
 from .objects import *
 from .globals import *
 
