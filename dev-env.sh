@@ -16,7 +16,7 @@ start_db() {
         -e POSTGRES_USER=$DB_USER \
         -e POSTGRES_PASSWORD=$DB_PASS \
         -e POSTGRES_DB=$DB_NAME\
-        -v ./conf/init.sql:/docker-entrypoint-initdb.d/init.sql \
+        -v ./db/init.sql:/docker-entrypoint-initdb.d/init.sql \
         -p 5432:5432 \
         -d --rm \
         postgres
