@@ -221,6 +221,13 @@ def test_get_me_games_422():
 
     assert res.status_code == 422
 
+def test_get_me_games_negative_page_400():
+    set_valid_cookie()
+    with patch("src.endpoints.db_query", new=AsyncMock(return_value=[])):
+        res = client.get("/me/games?page=-1")
+
+    assert res.status_code == 400
+
 def test_get_me_friends_200():
     set_valid_cookie()
     mock_query_result = [
@@ -246,6 +253,13 @@ def test_get_me_friends_422():
         res = client.get("/me/friends?page=not-a-number")
 
     assert res.status_code == 422
+
+def test_get_me_friends_negative_page_400():
+    set_valid_cookie()
+    with patch("src.endpoints.db_query", new=AsyncMock(return_value=[])):
+        res = client.get("/me/friends?page=-1")
+
+    assert res.status_code == 400
 
 def test_post_me_friends_201():
     set_valid_cookie()
@@ -469,6 +483,18 @@ def test_get_account_games_422():
             res = client.get("/account/games/jane?page=not-a-number")
 
     assert res.status_code == 422
+
+def test_get_account_games_negative_page_400():
+    set_valid_cookie()
+    mock_query_one_results = [
+        {"account_id": "bcdefgh-ijklmnop"},
+        {"status": "accepted"}
+    ]
+    with patch("src.endpoints.db_query_one", new=AsyncMock(side_effect=mock_query_one_results)):
+        with patch("src.endpoints.db_query", new=AsyncMock(return_value=[])):
+            res = client.get("/account/games/jane?page=-1")
+
+    assert res.status_code == 400
 
 def test_get_account_games_404():
     set_valid_cookie()

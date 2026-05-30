@@ -13,6 +13,12 @@ def get_current_user(req: Request) -> str:
     except:
         raise HTTPException(401)
 
+
+def get_page_offset(page: int) -> int:
+    if page < 0:
+        raise HTTPException(400, "Page must be greater than or equal to 0")
+    return page * 20
+
 @app.post("/me")
 async def post_me(username: str = Form(), password: str = Form()):
     password_hash = sha256(password.encode()).hexdigest()
@@ -160,9 +166,9 @@ async def get_account_games_by_id(account_id: str, page: int = 0):
         WHERE p.account_id = $1
         ORDER BY g.start_time DESC
         LIMIT 20 OFFSET $2;
-    """,
+        """,
         account_id,
-        page * 20,
+        get_page_offset(page),
     )
 
 
@@ -187,9 +193,9 @@ async def get_me_friends(page: int = 0, account_id: str = Depends(get_current_us
         WHERE f.account_id1 = $1 OR f.account_id2 = $1
         ORDER BY a.username
         LIMIT 20 OFFSET $2;
-    """,
+        """,
         account_id,
-        page * 20,
+        get_page_offset(page),
     )
 
 
