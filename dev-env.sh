@@ -22,11 +22,6 @@ start_db() {
         -d --rm \
         postgres
 
-    if [[ $? -ne 0 ]]; then
-        echo "ERROR: Failed to start PostgreSQL"
-        exit 1
-    fi
-
     until docker exec pg pg_isready -U postgres 2>&1; do
         sleep 1
     done

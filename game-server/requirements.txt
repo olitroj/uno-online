@@ -1,0 +1,2 @@
+websockets == 16.*
+pydantic == 2.13.*
