@@ -93,6 +93,7 @@ GAME_START : {
 PLAY_CARD : {
     // Request
     "card_id": int,
+    "new_color": colors,
     // Response
     "player_id": int,
     "score": int,

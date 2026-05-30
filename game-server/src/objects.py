@@ -1,3 +1,4 @@
+import websockets
 from dataclasses import dataclass
 from .enums import *
 
@@ -27,7 +28,14 @@ class Config():
 class GameState():
     stage       : Stages        = Stages.INTERMISSION
     players     : list[Player]  = []
+    next_pid    : int           = 0
+    deck        : list[Card]    = []
     pile        : Card          = None
     turn        : int           = -1
     hands       : list[Hand]    = []
     config      : Config        = Config()
+
+@dataclass
+class WsConnection():
+    player      : Player
+    conn        : websockets.ServerConnection
