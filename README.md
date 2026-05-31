@@ -41,12 +41,20 @@ NOTE: Database container isn't automatically deleted when the script ends, remov
 
 The REST API is served at:
 ```text
+API server
 http://localhost:8000
+
+Swagger UI
+http://localhost:8000/docs
 ```
 
-The OpenAPI specification is served at:
+The Game is served at:
 ```text
-http://localhost:8000/docs
+Game server
+ws://localhost:8080
+
+Test client
+http://localhost:8888
 ```
 
 ## Run Tests

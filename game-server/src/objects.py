@@ -62,3 +62,9 @@ ERROR_LOBBY_FULL        = Event(eventType=EventType.ERROR,
 ERROR_GAME_STARTED      = Event(eventType=EventType.ERROR,
                                 messageType=MsgType.RESPONSE,
                                 details={"message": "Game has already started"})
+ERROR_ALREADY_CONNECTED = Event(eventType=EventType.ERROR,
+                                messageType=MsgType.RESPONSE,
+                                details={"message": "You are already connected"})
+ERROR_FORBIDDEN         = Event(eventType=EventType.ERROR,
+                                messageType=MsgType.RESPONSE,
+                                details={"message": "This event is forbidden"})

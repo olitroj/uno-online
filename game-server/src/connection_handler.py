@@ -29,17 +29,19 @@ async def connection_handler(conn: websockets.ServerConnection):
             try:
                 request_event = Event.model_validate_json(payload)
                 if request_event.eventType != EventType.PLAY_CARD:
-                    raise
+                    await ws.conn.send(ERROR_FORBIDDEN.json())
+                    continue
             except:
                 await ws.conn.send(ERROR_NOT_VALID_EVENT.json())
                 continue
             asyncio.create_task(event_handler(request_event, ws))
 
-    except websockets.ConnectionClosed:
-        await remove_player(ws)
-        print("CONNECTION: closed by client: Player left")
-        leave_event = Event(eventType=EventType.PLAYER_LEAVE, messageType=MsgType.REQUEST, details={"player_id": ws.player.player_id})
-        asyncio.create_task(event_handler(leave_event, ws))
+    finally:
+        if ws is not None:
+            await remove_player(ws)
+            print("CONNECTION: closed by client: Player left")
+            leave_event = Event(eventType=EventType.PLAYER_LEAVE, messageType=MsgType.REQUEST, details={"player_id": ws.player.player_id})
+            asyncio.create_task(event_handler(leave_event, ws))
  
 
 def authenticate(ws: websockets.ServerConnection):
@@ -52,12 +54,14 @@ def authenticate(ws: websockets.ServerConnection):
     except:
         return None
 
-# TODO : Check if the connection for that player already exists - Don't allow one player two connections
 async def add_player(conn: websockets.ServerConnection, username: str):
     await state_lock.acquire()
     if len(game_state.players) >= game_state.config.max_players:
         state_lock.release()
         return ERROR_LOBBY_FULL
+    elif any(p.username == username for p in game_state.players):
+        state_lock.release()
+        return ERROR_ALREADY_CONNECTED
     elif game_state.stage != Stages.INTERMISSION:
         state_lock.release()
         return ERROR_GAME_STARTED
@@ -70,9 +74,11 @@ async def add_player(conn: websockets.ServerConnection, username: str):
     state_lock.release()
     return ws
 
-# TODO : Remove player hand as well
 async def remove_player(ws: WsConnection):
     await state_lock.acquire()
+    for h in game_state.hands:
+        if h.player_id == ws.player.player_id:
+            game_state.hands.remove(h)
     game_state.players.remove(ws.player)
     connections.remove(ws)
     state_lock.release()

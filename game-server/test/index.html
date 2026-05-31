@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>UNO Test Client</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        gap: 20px;
+        padding: 20px;
+    }
+    .panel {
+        width: 50%;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    textarea, input, select {
+        width: 100%;
+        font-family: monospace;
+        font-size: 14px;
+    }
+    textarea {
+        height: 300px;
+    }
+    #log {
+        height: 400px;
+        background: #111;
+        color: #0f0;
+        padding: 10px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+    }
+    button {
+        padding: 8px;
+        cursor: pointer;
+    }
+</style>
+</head>
+<body>
+
+<div class="panel">
+    <h3>Connection</h3>
+
+    <input id="wsUrl" placeholder="ws://localhost:8080" value="ws://localhost:8080" />
+
+    <button onclick="connectWS()">Connect</button>
+    <button onclick="disconnectWS()">Disconnect</button>
+
+    <h3>Event Builder</h3>
+    <select id="eventType" onchange="updateTemplate()">
+        <option value="PLAYER_JOIN">PLAYER_JOIN</option>
+        <option value="PLAYER_LEAVE">PLAYER_LEAVE</option>
+        <option value="LOBBY_STATE">LOBBY_STATE</option>
+        <option value="GAME_START">GAME_START</option>
+        <option value="ERROR">ERROR</option>
+    </select>
+
+    <textarea id="eventJson"></textarea>
+    <button onclick="sendEvent()">Send Event</button>
+</div>
+
+<div class="panel">
+    <h3>Server Output</h3>
+    <div id="log"></div>
+    <button onclick="clearLog()">Clear Console</button>
+</div>
+
+<script>
+let socket = null;
+
+const templates = {
+    PLAYER_JOIN: {
+        eventType: "PLAYER_JOIN",
+        messageType: "REQUEST",
+        details: {}
+    },
+    PLAYER_LEAVE: {
+        eventType: "PLAYER_LEAVE",
+        messageType: "REQUEST",
+        details: {
+            player_id: 0
+        }
+    },
+    LOBBY_STATE: {
+        eventType: "LOBBY_STATE",
+        messageType: "REQUEST",
+        details: {}
+    },
+    GAME_START: {
+        eventType: "GAME_START",
+        messageType: "REQUEST",
+        details: {}
+    },
+    ERROR: {
+        eventType: "ERROR",
+        messageType: "REQUEST",
+        details: {
+            message: ""
+        }
+    }
+};
+
+function updateTemplate() {
+    const type = document.getElementById("eventType").value;
+    document.getElementById("eventJson").value =
+        JSON.stringify(templates[type], null, 2);
+}
+
+function connectWS() {
+    const url = document.getElementById("wsUrl").value.trim();
+
+    if (socket) {
+        socket.close()
+        socket = null;
+    }
+    socket = new WebSocket(url);
+
+    socket.onopen = () => log("[Connected] " + url);
+    socket.onclose = () => log("[Disconnected]");
+    socket.onerror = (e) => log("[Error] WebSocket error");
+
+    socket.onmessage = (msg) => {
+        try {
+            const data = JSON.parse(msg.data);
+            log("[RECV] " + JSON.stringify(data, null, 2));
+        } catch {
+            log("[RECV] " + msg.data);
+        }
+    };
+}
+
+function disconnectWS() {
+    if (socket) socket.close();
+    socket = null;
+}
+
+function sendEvent() {
+    if (!socket || socket.readyState !== 1) {
+        alert("WebSocket not connected");
+        return;
+    }
+    
+    try {
+        const data = document.getElementById("eventJson").value;
+        socket.send(data);
+        log("[SEND] " + data);
+    } catch (e) {
+        alert("Invalid JSON");
+    }
+}
+
+function log(msg) {
+    const logDiv = document.getElementById("log");
+    logDiv.textContent += msg + "\n\n";
+    logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+function clearLog() {
+    document.getElementById("log").textContent = "";
+}
+
+// init default template
+updateTemplate();
+</script>
+
+</body>
+</html>
