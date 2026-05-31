@@ -1,6 +1,7 @@
 import asyncio
 import websockets
 import threading
+import os
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from src.connection_handler import connection_handler
 
@@ -18,5 +19,7 @@ async def main():
     async with websockets.serve(connection_handler, "0.0.0.0", 8080):
         await asyncio.Future()
 
-threading.Thread(target=run_http, daemon=True).start()
+if os.environ.get("ENABLE_TEST_CLIENT").lower() == "true":
+    threading.Thread(target=run_http, daemon=True).start()
+
 asyncio.run(main())

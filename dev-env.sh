@@ -40,6 +40,14 @@ start_api_server() {
     cd ..
 }
 
+start_game_server() {
+    export ENABLE_TEST_CLIENT="true"
+    echo "Starting game-server"
+    cd ./game-server
+    python main.py
+    cd ..
+}
+
 setup() {
     python -m venv .venv
     source .venv/Scripts/activate
@@ -65,10 +73,7 @@ start() {
     if [[ "$1" == "api" ]]; then
         start_api_server
     elif [[ "$1" == "game" ]]; then
-        echo "Starting game-server"
-        cd ./game-server
-        python main.py
-        cd ..
+        start_game_server
     else
         help
     fi
