@@ -5,7 +5,7 @@ from asyncpg import UniqueViolationError
 from main import app
 from .db import db_query_one, db_query, db_execute
 from .auth import generate_jwt, validate_jwt, JWT_NAME
-from .schemas import AccountStatus
+from .schemas import AccountStatus, FriendStatus
 
 def get_current_user(req: Request) -> str:
     try:
@@ -111,22 +111,6 @@ async def delete_me_token():
     return res
 
 
-"""
-    Potential query
-    SELECT
-        a.username,
-        a.status,
-        a.description,
-        COUNT(p.game_id) FILTER (WHERE p.win = TRUE) AS wins,
-        COALESCE(SUM(p.score), 0) AS total_score
-    FROM Accounts a
-    LEFT JOIN Participants p
-        ON a.account_id = p.account_id
-    WHERE a.account_id = $1
-    GROUP BY a.account_id, a.username, a.status, a.description;
-"""
-
-
 @app.get("/me/info")
 async def get_me_info(account_id: str = Depends(get_current_user)):
     return await get_account_info_by_id(account_id)
@@ -220,7 +204,7 @@ async def ensure_can_view_account(current_account_id: str, account_id: str):
         max(current_account_id, account_id),
     )
     if friend is None:
-        raise HTTPException(403)
+        raise HTTPException(403, "Forbidden to view non-friend account")
 
 
 @app.get("/account/info/{username}")
@@ -247,18 +231,23 @@ async def post_me_friends(
 ):
     account_id = await get_account_id_by_username(username)
     if account_id == current_account_id:
-        raise HTTPException(404)
+        raise HTTPException(400, "Cannot friend yourself")
     account_id1 = account_id
     account_id2 = current_account_id
+    account_id1_is_current_user = False
     if current_account_id < account_id:
         account_id1 = current_account_id
         account_id2 = account_id
+        account_id1_is_current_user = True
     try:
         await db_execute(
-            "INSERT INTO Friends (account_id1, account_id2) VALUES ($1, $2);",
+            "INSERT INTO Friends (account_id1, account_id2, account_id1_started) VALUES ($1, $2, $3);",
             account_id1,
             account_id2,
+            account_id1_is_current_user
         )
+    except UniqueViolationError:
+        raise HTTPException(400, "Request already sent")
     except:
         raise HTTPException(404)
     return Response(status_code=201)
@@ -273,18 +262,26 @@ async def patch_me_friends(
     if action != "accept" and action != "reject":
         raise HTTPException(400, "Action must be 'accept' or 'reject'")
     account_id = await get_account_id_by_username(username)
+    if account_id == current_account_id:
+        raise HTTPException(400, "Cannot friend yourself")
     account_id1 = account_id
     account_id2 = current_account_id
+    account_id1_is_current_user = False
     if current_account_id < account_id:
         account_id1 = current_account_id
         account_id2 = account_id
+        account_id1_is_current_user = True
     friend = await db_query_one(
-        "SELECT status FROM Friends WHERE account_id1=$1 AND account_id2=$2;",
+        "SELECT status, account_id1_started FROM Friends WHERE account_id1=$1 AND account_id2=$2;",
         account_id1,
         account_id2,
     )
     if friend is None:
         raise HTTPException(404)
+    if friend.get("status") != FriendStatus.pending:
+        raise HTTPException(400, "Request has already been accepted/rejected")
+    if account_id1_is_current_user == friend.get("account_id1_started"):
+        raise HTTPException(400, "Cannot accept/reject your own request")
     status = "accepted"
     if action == "reject":
         status = "rejected"
@@ -302,6 +299,8 @@ async def delete_me_friends(
     username: str, current_account_id: str = Depends(get_current_user)
 ):
     account_id = await get_account_id_by_username(username)
+    if account_id == current_account_id:
+        raise HTTPException(400, "Cannot un-friend yourself")
     account_id1 = account_id
     account_id2 = current_account_id
     if current_account_id < account_id:

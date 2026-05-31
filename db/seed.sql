@@ -45,7 +45,7 @@ INSERT INTO Participants (account_id, game_id, score, win)
     WHERE a.username = 'test3'
     LIMIT 1 OFFSET 2;
     
-INSERT INTO Friends (status, account_id1, account_id2)
-    SELECT 'accepted', a1.account_id, a2.account_id
+INSERT INTO Friends (status, account_id1, account_id2, account_id1_started)
+    SELECT 'accepted', a1.account_id, a2.account_id, true
     FROM Accounts a1
     JOIN Accounts a2 ON a1.username = 'test1' AND a2.username = 'test2';

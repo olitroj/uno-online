@@ -33,6 +33,7 @@ CREATE TABLE Friends (
     status friend_status NOT NULL DEFAULT 'pending',
     account_id1 UUID NOT NULL,
     account_id2 UUID NOT NULL,
+    account_id1_started BOOLEAN NOT NULL,
 
     CONSTRAINT fk_friends_user1
         FOREIGN KEY (account_id1)

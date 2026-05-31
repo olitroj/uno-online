@@ -123,7 +123,7 @@
         },
         "responses": {
           "200": { "description": "Updated account" },
-          "400": { "description": "Status must be 'online', 'offline' or 'ingame'" },
+          "400": { "description": "Bad request" },
           "401": { "description": "Unauthorized" },
           "409": { "description": "Conflicting username" }
         }
@@ -216,6 +216,7 @@
               }
             }
           },
+          "400": { "description": "Bad request" },
           "401": { "description": "Unauthorized" }
         }
       }
@@ -255,6 +256,7 @@
         ],
         "responses": {
           "201": { "description": "Created friend request" },
+          "400": { "description": "Bad request" },
           "401": { "description": "Unauthorized" },
           "404": { "description": "Not found" }
         }
@@ -282,7 +284,7 @@
         },
         "responses": {
           "200": { "description": "OK" },
-          "400": { "description": "Action must be 'accept' or 'reject'" },
+          "400": { "description": "Bad request" },
           "401": { "description": "Unauthorized" },
           "404": { "description": "Not found" }
         }
@@ -342,6 +344,7 @@
               }
             }
           },
+          "400": { "description": "Bad request" },
           "401": { "description": "Unauthorized" },
           "403": { "description": "Forbidden to view non-friend games" },
           "404": { "description": "Not found" }
