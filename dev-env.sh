@@ -17,13 +17,19 @@ start_db() {
         -e POSTGRES_PASSWORD=$DB_PASS \
         -e POSTGRES_DB=$DB_NAME\
         -v ./db/init.sql:/docker-entrypoint-initdb.d/init.sql \
+        -v ./db/seed.sql:/seed.sql \
         -p 5432:5432 \
         -d --rm \
         postgres
 
+    db_exists=$?
     until docker exec pg pg_isready -U postgres 2>&1; do
         sleep 1
     done
+
+    if [[ db_exists -eq 0 ]]; then
+        docker exec pg psql "postgresql://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME" -f /seed.sql
+    fi
 }
 
 start_api_server() {
@@ -40,6 +46,17 @@ setup() {
     pip install -r ./api-server/requirements.txt -r ./game-server/requirements.txt
 }
 
+help() {
+    echo "usage: ./dev-env.sh [setup|run|test] [api|game] [--db]"
+    echo -e "\tsetup - Creates venv, download dependencies"
+    echo -e "\trun - Run one of the following components"
+    echo -e "\t\t- api - REST API server"
+    echo -e "\t\t- game - Game server"
+    echo -e "\ttest - Run unit tests"
+    echo "Flags:"
+    echo -e "\t--db - Run a PostgreSQL container alongside run command"
+}
+
 start() {
     if [[ "$2" == "--db" ]]; then
         start_db
@@ -52,6 +69,8 @@ start() {
         cd ./game-server
         python main.py
         cd ..
+    else
+        help
     fi
 }
 
@@ -62,12 +81,5 @@ elif [[ "$1" == "start" ]]; then
 elif [[ "$1" == "test" ]]; then
     pytest
 else
-    echo "usage: ./dev-env.sh [setup|run|test] [api|game] [--db]"
-    echo -e "\tsetup - Creates venv, download dependencies"
-    echo -e "\trun - Run one of the following components"
-    echo -e "\t\t- api - REST API server"
-    echo -e "\t\t- game - Game server"
-    echo -e "\ttest - Run unit tests"
-    echo "Flags:"
-    echo -e "\t--db - Run a PostgreSQL container alongside run command"
+    help
 fi

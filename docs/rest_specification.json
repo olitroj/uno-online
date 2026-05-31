@@ -44,8 +44,8 @@
       "Game": {
         "type": "object",
         "properties": {
-          "start_time": { "type": "integer" },
-          "end_time": { "type": "integer" },
+          "start_time": { "type": "string" },
+          "end_time": { "type": "string" },
           "score": { "type": "integer" },
           "win": { "type": "boolean" }
         }

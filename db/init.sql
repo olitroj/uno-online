@@ -25,8 +25,8 @@ CREATE TABLE Participants (
 
 CREATE TABLE Games (
     game_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    start_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    end_time TIMESTAMPTZ
+    start_time TIMESTAMPTZ NOT NULL,
+    end_time TIMESTAMPTZ NOT NULL
 );
 
 CREATE TABLE Friends (

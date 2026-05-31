@@ -156,8 +156,8 @@ async def get_account_games_by_id(account_id: str, page: int = 0):
     return await db_query(
         """
         SELECT
-            EXTRACT(EPOCH FROM g.start_time)::BIGINT AS start_time,
-            EXTRACT(EPOCH FROM g.end_time)::BIGINT AS end_time,
+            g.start_time,
+            g.end_time,
             p.score,
             p.win
         FROM Participants p
