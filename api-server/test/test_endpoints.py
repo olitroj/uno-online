@@ -286,14 +286,14 @@ def test_post_me_friends_404():
 
     assert res.status_code == 404
 
-def test_post_me_friends_self_404():
+def test_post_me_friends_self_400():
     set_valid_cookie()
     mock_query_result = {"account_id": "abcdefg-hijklmnop"}
     with patch("src.endpoints.db_query_one", new=AsyncMock(return_value=mock_query_result)):
         with patch("src.endpoints.db_execute", new=AsyncMock()):
             res = client.post("/me/friends/john")
 
-    assert res.status_code == 404
+    assert res.status_code == 400
 
 def test_patch_me_friends_accept_200():
     set_valid_cookie()

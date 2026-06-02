@@ -192,6 +192,17 @@ async def get_account_id_by_username(username: str):
     return str(account.get("account_id"))
 
 
+def get_ordered_friend_pair(
+    current_account_id: str, account_id: str, self_error_detail: str
+):
+    if account_id == current_account_id:
+        raise HTTPException(400, self_error_detail)
+    account_id1 = min(current_account_id, account_id)
+    account_id2 = max(current_account_id, account_id)
+    account_id1_is_current_user = account_id1 == current_account_id
+    return account_id1, account_id2, account_id1_is_current_user
+
+
 async def ensure_can_view_account(current_account_id: str, account_id: str):
     if current_account_id == account_id:
         return
@@ -230,15 +241,9 @@ async def post_me_friends(
     username: str, current_account_id: str = Depends(get_current_user)
 ):
     account_id = await get_account_id_by_username(username)
-    if account_id == current_account_id:
-        raise HTTPException(400, "Cannot friend yourself")
-    account_id1 = account_id
-    account_id2 = current_account_id
-    account_id1_is_current_user = False
-    if current_account_id < account_id:
-        account_id1 = current_account_id
-        account_id2 = account_id
-        account_id1_is_current_user = True
+    account_id1, account_id2, account_id1_is_current_user = get_ordered_friend_pair(
+        current_account_id, account_id, "Cannot friend yourself"
+    )
     try:
         await db_execute(
             "INSERT INTO Friends (account_id1, account_id2, account_id1_started) VALUES ($1, $2, $3);",
@@ -262,15 +267,9 @@ async def patch_me_friends(
     if action != "accept" and action != "reject":
         raise HTTPException(400, "Action must be 'accept' or 'reject'")
     account_id = await get_account_id_by_username(username)
-    if account_id == current_account_id:
-        raise HTTPException(400, "Cannot friend yourself")
-    account_id1 = account_id
-    account_id2 = current_account_id
-    account_id1_is_current_user = False
-    if current_account_id < account_id:
-        account_id1 = current_account_id
-        account_id2 = account_id
-        account_id1_is_current_user = True
+    account_id1, account_id2, account_id1_is_current_user = get_ordered_friend_pair(
+        current_account_id, account_id, "Cannot friend yourself"
+    )
     friend = await db_query_one(
         "SELECT status, account_id1_started FROM Friends WHERE account_id1=$1 AND account_id2=$2;",
         account_id1,
@@ -299,13 +298,9 @@ async def delete_me_friends(
     username: str, current_account_id: str = Depends(get_current_user)
 ):
     account_id = await get_account_id_by_username(username)
-    if account_id == current_account_id:
-        raise HTTPException(400, "Cannot un-friend yourself")
-    account_id1 = account_id
-    account_id2 = current_account_id
-    if current_account_id < account_id:
-        account_id1 = current_account_id
-        account_id2 = account_id
+    account_id1, account_id2, _ = get_ordered_friend_pair(
+        current_account_id, account_id, "Cannot un-friend yourself"
+    )
     friend = await db_query_one(
         "SELECT status FROM Friends WHERE account_id1=$1 AND account_id2=$2;",
         account_id1,
