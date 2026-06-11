@@ -4,6 +4,7 @@ import threading
 import os
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from src.connection_handler import connection_handler
+from src.db import init_db_conn
 
 class TestClientRequestHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -16,10 +17,11 @@ def run_http():
     httpd.serve_forever()
 
 async def main():
+    await init_db_conn()
     async with websockets.serve(connection_handler, "0.0.0.0", 8080):
         await asyncio.Future()
 
-if os.environ.get("ENABLE_TEST_CLIENT").lower() == "true":
+if os.environ.get("ENABLE_TEST_CLIENT", "false").lower() == "true":
     threading.Thread(target=run_http, daemon=True).start()
 
 asyncio.run(main())

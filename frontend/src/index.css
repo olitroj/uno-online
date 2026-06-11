@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+:root {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  color-scheme: dark;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background: #0f0f13;
+  color: #e8e8f0;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* UNO card hover lift */
+.card-hover {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.card-hover:hover {
+  transform: translateY(-10px) scale(1.05);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.6);
+}
+
+/* Green glow on playable cards */
+.card-playable {
+  box-shadow: 0 0 0 3px #55c48a, 0 4px 16px rgba(85, 196, 138, 0.4);
+}
+
+/* Pulsing ring on current turn indicator */
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(108, 99, 255, 0.7); }
+  70%  { box-shadow: 0 0 0 12px rgba(108, 99, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(108, 99, 255, 0); }
+}
+.pulse-ring { animation: pulse-ring 1.5s infinite; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #1a1a2e; }
+::-webkit-scrollbar-thumb { background: #2a2a4a; border-radius: 3px; }

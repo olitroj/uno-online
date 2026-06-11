@@ -1,2 +1,4 @@
 websockets == 16.*
 pydantic == 2.13.*
+asyncpg == 0.31.*
+pyjwt == 2.12.*

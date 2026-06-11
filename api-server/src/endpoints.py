@@ -26,7 +26,9 @@ async def post_me(username: str = Form(), password: str = Form()):
         account_id = await db_query_one("INSERT INTO Accounts (username, password_hash) VALUES ($1, $2) RETURNING account_id;", username, password_hash)
     except UniqueViolationError:
         raise HTTPException(409, "Conflicting username")
-    token = generate_jwt(str(account_id.get("account_id")))
+    aid = str(account_id.get("account_id"))
+    await db_execute("UPDATE Accounts SET status='online' WHERE account_id=$1::uuid;", aid)
+    token = generate_jwt(aid)
     res = Response(status_code=201)
     res.set_cookie(key=JWT_NAME, value=token, httponly=True)
     return res
@@ -98,14 +100,17 @@ async def post_me_token(username: str = Form(), password: str = Form()):
     )
     if account_id is None:
         raise HTTPException(401)
-    token = generate_jwt(str(account_id.get("account_id")))
+    aid = str(account_id.get("account_id"))
+    await db_execute("UPDATE Accounts SET status='online' WHERE account_id=$1::uuid;", aid)
+    token = generate_jwt(aid)
     res = Response(status_code=200)
     res.set_cookie(key=JWT_NAME, value=token, httponly=True)
     return res
 
 
 @app.delete("/me/token")
-async def delete_me_token():
+async def delete_me_token(account_id: str = Depends(get_current_user)):
+    await db_execute("UPDATE Accounts SET status='offline' WHERE account_id=$1::uuid;", account_id)
     res = Response(status_code=204)
     res.delete_cookie(key=JWT_NAME)
     return res
@@ -162,7 +167,8 @@ async def get_me_games(page: int = 0, account_id: str = Depends(get_current_user
 
 
 @app.get("/me/friends")
-async def get_me_friends(page: int = 0, account_id: str = Depends(get_current_user)):
+async def get_me_friends(page: int = 0, search: str = "", account_id: str = Depends(get_current_user)):
+    """Return a paginated and optionally filtered list of friends."""
     return await db_query(
         """
         SELECT
@@ -174,13 +180,37 @@ async def get_me_friends(page: int = 0, account_id: str = Depends(get_current_us
                 WHEN f.account_id1 = $1 THEN f.account_id2
                 ELSE f.account_id1
             END
-        WHERE f.account_id1 = $1 OR f.account_id2 = $1
+        WHERE (f.account_id1 = $1 OR f.account_id2 = $1)
+          AND a.username ILIKE $3
         ORDER BY a.username
         LIMIT 20 OFFSET $2;
         """,
         account_id,
         get_page_offset(page),
+        f"%{search}%",
     )
+
+
+@app.get("/me/friends/count")
+async def get_me_friends_count(search: str = "", account_id: str = Depends(get_current_user)):
+    """Return the total number of friends matching the search filter.
+    The frontend uses this to calculate the number of pagination pages."""
+    row = await db_query_one(
+        """
+        SELECT COUNT(*) AS count
+        FROM Friends f
+        JOIN Accounts a
+            ON a.account_id = CASE
+                WHEN f.account_id1 = $1 THEN f.account_id2
+                ELSE f.account_id1
+            END
+        WHERE (f.account_id1 = $1 OR f.account_id2 = $1)
+          AND a.username ILIKE $2;
+        """,
+        account_id,
+        f"%{search}%",
+    )
+    return {"count": row["count"] if row else 0}
 
 
 async def get_account_id_by_username(username: str):
