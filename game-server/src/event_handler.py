@@ -197,8 +197,11 @@ async def event_handler(event: Event, sender: WsConnection = None):
         await state_lock.acquire()
 
         # Guard: only valid during play phase and on the player's turn
-        if game_state.stage != Stages.PLAY or game_state.turn != sender.player.player_id:
-            await sender.conn.send(ERROR_FORBIDDEN.json())
+        if game_state.stage != Stages.PLAY:
+            state_lock.release()
+            return
+        if game_state.turn != sender.player.player_id:
+            # Silently ignore — likely a race condition (click arrived after turn changed)
             state_lock.release()
             return
 
@@ -210,7 +213,7 @@ async def event_handler(event: Event, sender: WsConnection = None):
         card = next((c for c in hand.cards if c.card_id == card_id), None) if hand else None
 
         if card is None or not is_playable(card):
-            await sender.conn.send(ERROR_FORBIDDEN.json())
+            # Silently ignore — card may have already been played (double-click race)
             state_lock.release()
             return
 
@@ -285,8 +288,10 @@ async def event_handler(event: Event, sender: WsConnection = None):
     elif event.eventType == EventType.DRAW_CARDS:
         await state_lock.acquire()
 
-        if game_state.stage != Stages.PLAY or game_state.turn != sender.player.player_id:
-            await sender.conn.send(ERROR_FORBIDDEN.json())
+        if game_state.stage != Stages.PLAY:
+            state_lock.release()
+            return
+        if game_state.turn != sender.player.player_id:
             state_lock.release()
             return
 

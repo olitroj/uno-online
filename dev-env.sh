@@ -44,7 +44,7 @@ start_game_server() {
     export ENABLE_TEST_CLIENT="true"
     echo "Starting game-server"
     cd ./game-server
-    python main.py
+    python3 main.py
     cd ..
 }
 
