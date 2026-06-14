@@ -95,18 +95,17 @@ async def add_player(conn: websockets.ServerConnection, account_id: str):
 
     await state_lock.acquire()
 
+    # One account may only have one live websocket in the game. Removing the
+    # old state here leaves the old websocket active and makes the lobby/game
+    # inconsistent, so reject the second connection instead.
+    existing_ws = next((w for w in connections if w.player.account_id == account_id), None)
+    if existing_ws is not None:
+        state_lock.release()
+        return ERROR_ALREADY_CONNECTED
+
     if game_state.stage != Stages.INTERMISSION:
         state_lock.release()
         return ERROR_GAME_STARTED
-
-    # If the same account is already listed (e.g. a stale entry from a dropped
-    # connection), remove the old entry so they can reconnect cleanly.
-    existing_ws = next((w for w in connections if w.player.account_id == account_id), None)
-    if existing_ws is not None:
-        connections.remove(existing_ws)
-        game_state.players = [p for p in game_state.players if p.account_id != account_id]
-        game_state.hands   = [h for h in game_state.hands   if h.player_id != existing_ws.player.player_id]
-        print(f"CONNECTION: removed stale connection for {username}, allowing reconnect")
 
     if len(game_state.players) >= game_state.config.max_players:
         state_lock.release()

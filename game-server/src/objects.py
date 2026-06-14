@@ -44,6 +44,7 @@ class GameState():
         self.hands          : list[Hand]       = []
         self.config         : Config           = Config()
         self.start_time     : datetime | None  = None   # set when PLAY stage begins
+        self.turn_start_time: datetime | None  = None   # set when a turn begins (for timeout)
 
 @dataclass
 class WsConnection():
@@ -72,4 +73,4 @@ ERROR_GAME_STARTED      = Event(eventType=EventType.ERROR,
                                 details={"message": "Game has already started"})
 ERROR_ALREADY_CONNECTED = Event(eventType=EventType.ERROR,
                                 messageType=MsgType.RESPONSE,
-                                details={"message": "You are already connected"})
+                                details={"message": "You have already joined"})

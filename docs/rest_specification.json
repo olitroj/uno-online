@@ -26,7 +26,7 @@
         "properties": {
           "username": { "type": "string" },
           "password": { "type": "string" },
-          "status": { "type": "string", "enum": ["online", "offline", "ingame"] },
+          "status": { "type": "string", "enum": ["online", "offline"] },
           "description": { "type": "string" }
         }
       },
@@ -34,7 +34,7 @@
         "type": "object",
         "properties": {
           "username": { "type": "string" },
-          "status": { "type": "string", "enum": ["online", "offline", "ingame"] },
+          "status": { "type": "string", "enum": ["online", "offline"] },
           "description": { "type": "string" },
           "wins": { "type": "integer" },
           "losses": { "type": "integer" },

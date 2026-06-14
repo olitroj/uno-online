@@ -32,6 +32,7 @@ import {
   getMyInfo, updateMyInfo, deleteAccount, logout,
   getMyGames, getFriends, getFriendsCount,
   sendFriendRequest, respondToFriend, removeFriend,
+  getAccountInfo, getAccountGames,
 } from '@/lib/api'
 import type { AccountInfo, Friend, GameRecord } from '@/types'
 import { Button } from '@/components/ui/Button'
@@ -48,7 +49,9 @@ export default function HomePage() {
 
   // ── Profile state ──────────────────────────────────────────────────────────
   const [profile, setProfile]       = useState<AccountInfo | null>(null)   // null = still loading
-  const [editMode, setEditMode]     = useState(false)                       // true = description input visible
+  const [editMode, setEditMode]     = useState(false)                       // true = edit form visible
+  const [editUsername, setEditUsername] = useState('')                      // current value of username input
+  const [editPassword, setEditPassword] = useState('')                      // current value of password input
   const [editDesc, setEditDesc]     = useState('')                          // current value of description input
   const [profileMsg, setProfileMsg] = useState('')                          // success/error message below profile
 
@@ -59,6 +62,13 @@ export default function HomePage() {
   const [friendTotal, setFriendTotal]   = useState(0)         // total matching friends (from count endpoint)
   const [addName, setAddName]           = useState('')         // value of the "Add Friend" input
   const [friendMsg, setFriendMsg]       = useState('')         // status message below friend add form
+  const [selectedFriend, setSelectedFriend] = useState<string | null>(null)
+  const [friendProfile, setFriendProfile] = useState<AccountInfo | null>(null)
+  const [friendGames, setFriendGames] = useState<GameRecord[]>([])
+  const [friendGamePage, setFriendGamePage] = useState(0)
+  const [friendHasMoreGames, setFriendHasMoreGames] = useState(false)
+  const [friendProfileMsg, setFriendProfileMsg] = useState('')
+  const [friendProfileLoading, setFriendProfileLoading] = useState(false)
 
   // ── Game history state ─────────────────────────────────────────────────────
   const [games, setGames]               = useState<GameRecord[]>([])
@@ -73,6 +83,8 @@ export default function HomePage() {
   useEffect(() => {
     getMyInfo().then(info => {
       setProfile(info)
+      setEditUsername(info.username)
+      setEditPassword('')
       setEditDesc(info.description ?? '')
     }).catch(() => navigate('/'))
   }, [navigate])
@@ -116,6 +128,31 @@ export default function HomePage() {
 
   useEffect(() => { loadGames() }, [loadGames])
 
+  const loadFriendProfile = useCallback(async () => {
+    if (!selectedFriend) return
+    setFriendProfileLoading(true)
+    setFriendProfileMsg('')
+    try {
+      const [info, list] = await Promise.all([
+        getAccountInfo(selectedFriend),
+        getAccountGames(selectedFriend, friendGamePage),
+      ])
+      setFriendProfile(info)
+      setFriendGames(list)
+      setFriendHasMoreGames(list.length === PAGE_SIZE)
+    } catch (err) {
+      setFriendProfile(null)
+      setFriendGames([])
+      setFriendHasMoreGames(false)
+      setFriendProfileMsg(err instanceof Error ? err.message : 'Failed to load friend profile')
+    } finally {
+      setFriendProfileLoading(false)
+    }
+  }, [selectedFriend, friendGamePage])
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { loadFriendProfile() }, [loadFriendProfile])
+
   // ── Action handlers ────────────────────────────────────────────────────────
 
   // Logs out and sends the user back to the login page
@@ -124,15 +161,25 @@ export default function HomePage() {
     navigate('/')
   }
 
-  // Saves the edited description to the server and updates local profile state
-  async function handleSaveDesc() {
+  // Saves the edited profile fields to the server and updates local profile state
+  async function handleSaveProfile() {
     try {
-      await updateMyInfo({ description: editDesc })
-      // Update only the description field in the local profile object
-      setProfile(p => p ? { ...p, description: editDesc } : p)
+      const updates: Parameters<typeof updateMyInfo>[0] = {}
+      if (editUsername !== profile?.username) updates.username = editUsername
+      if (editPassword) updates.password = editPassword
+      if (editDesc !== (profile?.description ?? '')) updates.description = editDesc
+
+      if (Object.keys(updates).length === 0) {
+        setEditMode(false)
+        return
+      }
+
+      await updateMyInfo(updates)
+      setProfile(p => p ? { ...p, username: editUsername, description: editDesc } : p)
       setEditMode(false)
+      setEditPassword('')
       setProfileMsg('Profile updated!')
-      setTimeout(() => setProfileMsg(''), 2500)  // hide the message after 2.5 seconds
+      setTimeout(() => setProfileMsg(''), 2500)
     } catch (err) {
       setProfileMsg(err instanceof Error ? err.message : 'Update failed')
     }
@@ -176,10 +223,37 @@ export default function HomePage() {
     if (!confirm(`Remove ${username} from friends?`)) return
     try {
       await removeFriend(username)
+      if (selectedFriend === username) {
+        clearSelectedFriend()
+      }
       loadFriends()
     } catch (err) {
       setFriendMsg(err instanceof Error ? err.message : 'Failed')
     }
+  }
+
+  function clearSelectedFriend() {
+    setSelectedFriend(null)
+    setFriendProfile(null)
+    setFriendGames([])
+    setFriendGamePage(0)
+    setFriendProfileMsg('')
+    setFriendHasMoreGames(false)
+  }
+
+  function handleSelectFriend(friend: Friend) {
+    if (friend.status !== 'accepted') return
+    if (selectedFriend === friend.username) {
+      clearSelectedFriend()
+      return
+    }
+    if (selectedFriend !== friend.username) {
+      setFriendProfile(null)
+      setFriendGames([])
+      setFriendProfileMsg('')
+    }
+    setSelectedFriend(friend.username)
+    setFriendGamePage(0)
   }
 
   // ── Derived values ─────────────────────────────────────────────────────────
@@ -193,8 +267,28 @@ export default function HomePage() {
   // Returns a coloured <Badge> matching the player's online status
   function statusBadge(s: string) {
     if (s === 'online')  return <Badge variant="success">● online</Badge>
-    if (s === 'ingame')  return <Badge variant="warning">● in game</Badge>
     return <Badge variant="default">● offline</Badge>
+  }
+
+  function gameHistoryCard(g: GameRecord, i: number) {
+    return (
+      <Card key={`${g.start_time}-${i}`} className="flex items-center gap-4 py-3">
+        <div className={`flex-shrink-0 text-2xl ${g.win ? 'text-[#f0a030]' : 'text-[#555566]'}`}>
+          {g.win ? <Trophy size={24} /> : '💀'}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-white">
+            {g.win ? 'Victory' : 'Defeat'}
+          </div>
+          <div className="text-xs text-[#888899]">
+            {new Date(g.start_time).toLocaleDateString()} · Score: {g.score}
+          </div>
+        </div>
+        <Badge variant={g.win ? 'success' : 'danger'}>
+          {g.win ? 'Win' : 'Loss'}
+        </Badge>
+      </Card>
+    )
   }
 
   // Returns a coloured <Badge> for a friend relationship status
@@ -264,29 +358,62 @@ export default function HomePage() {
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <span className="text-lg font-bold text-white">{profile.username}</span>
-                {statusBadge(profile.status)}
               </div>
 
-              {/* Toggle between view mode and edit mode for description */}
+              {/* Toggle between view mode and edit mode for profile */}
               {editMode ? (
-                <div className="flex gap-2 mt-2">
-                  <Input
-                    value={editDesc}
-                    onChange={e => setEditDesc(e.target.value)}
-                    placeholder="Add a description…"
-                    maxLength={100}
-                    className="flex-1"
-                  />
-                  <Button size="sm" onClick={handleSaveDesc}>Save</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setEditMode(false)}>Cancel</Button>
+                <div className="flex flex-col gap-3 mt-3">
+                  <div>
+                    <label className="text-xs text-[#888899] block mb-1">Username</label>
+                    <Input
+                      value={editUsername}
+                      onChange={e => setEditUsername(e.target.value)}
+                      placeholder="Username"
+                      minLength={3}
+                      maxLength={32}
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#888899] block mb-1">Password (leave blank to keep current)</label>
+                    <Input
+                      type="password"
+                      value={editPassword}
+                      onChange={e => setEditPassword(e.target.value)}
+                      placeholder="New password"
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#888899] block mb-1">Description</label>
+                    <Input
+                      value={editDesc}
+                      onChange={e => setEditDesc(e.target.value)}
+                      placeholder="Add a description…"
+                      maxLength={100}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleSaveProfile}>Save</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditMode(false)}>Cancel</Button>
+                  </div>
                 </div>
               ) : (
-                <p
-                  className="text-sm text-[#888899] cursor-pointer hover:text-[#e8e8f0] transition-colors mt-1"
-                  onClick={() => setEditMode(true)}
-                >
-                  {profile.description || <span className="italic">Click to add a description…</span>}
-                </p>
+                <div>
+                  <p
+                    className="text-sm text-[#888899] cursor-pointer hover:text-[#e8e8f0] transition-colors mt-1"
+                    onClick={() => setEditMode(true)}
+                  >
+                    {profile.description || <span className="italic">Click to add a description…</span>}
+                  </p>
+                  <button
+                    onClick={() => setEditMode(true)}
+                    className="text-xs text-[#6c63ff] hover:text-[#8875ff] transition-colors mt-2"
+                  >
+                    Edit profile
+                  </button>
+                </div>
               )}
               {profileMsg && <p className="text-xs text-[#55c48a] mt-1">{profileMsg}</p>}
             </div>
@@ -379,7 +506,25 @@ export default function HomePage() {
             ) : (
               <div className="flex flex-col gap-2">
                 {friends.map(f => (
-                  <Card key={f.username} className="flex items-center gap-3 py-3">
+                  <Card
+                    key={f.username}
+                    role={f.status === 'accepted' ? 'button' : undefined}
+                    tabIndex={f.status === 'accepted' ? 0 : undefined}
+                    onClick={() => handleSelectFriend(f)}
+                    onKeyDown={e => {
+                      if (f.status === 'accepted' && (e.key === 'Enter' || e.key === ' ')) {
+                        e.preventDefault()
+                        handleSelectFriend(f)
+                      }
+                    }}
+                    className={`flex items-center gap-3 py-3 transition-colors ${
+                      f.status === 'accepted'
+                        ? selectedFriend === f.username
+                          ? 'border-[#6c63ff] bg-[#20203a] cursor-pointer'
+                          : 'cursor-pointer hover:bg-[#20203a]'
+                        : ''
+                    }`}
+                  >
                     <div className="w-9 h-9 rounded-full bg-[#2a2a4a] flex items-center justify-center text-lg flex-shrink-0">
                       🐱
                     </div>
@@ -391,17 +536,17 @@ export default function HomePage() {
                       {/* Show accept/reject buttons for pending requests */}
                       {f.status === 'pending' && (
                         <>
-                          <button onClick={() => handleRespond(f.username, 'accept')} title="Accept" className="text-[#55c48a] hover:opacity-70 transition-opacity">
+                          <button onClick={e => { e.stopPropagation(); handleRespond(f.username, 'accept') }} title="Accept" className="text-[#55c48a] hover:opacity-70 transition-opacity">
                             <CheckCircle size={18} />
                           </button>
-                          <button onClick={() => handleRespond(f.username, 'reject')} title="Reject" className="text-[#e05555] hover:opacity-70 transition-opacity">
+                          <button onClick={e => { e.stopPropagation(); handleRespond(f.username, 'reject') }} title="Reject" className="text-[#e05555] hover:opacity-70 transition-opacity">
                             <XCircle size={18} />
                           </button>
                         </>
                       )}
                       {/* Show remove button for accepted friends */}
-                      {f.status === 'accepted' && (
-                        <button onClick={() => handleRemoveFriend(f.username)} title="Remove" className="text-[#555566] hover:text-[#e05555] transition-colors">
+                      {f.status !== 'pending' && (
+                        <button onClick={e => { e.stopPropagation(); handleRemoveFriend(f.username) }} title="Remove" className="text-[#555566] hover:text-[#e05555] transition-colors">
                           <XCircle size={18} />
                         </button>
                       )}
@@ -433,6 +578,78 @@ export default function HomePage() {
                   Next <ChevronRight size={14} />
                 </Button>
               </div>
+            )}
+
+            {selectedFriend && (
+              <Card>
+                <CardTitle>Friend Profile</CardTitle>
+
+                {friendProfileLoading && !friendProfile ? (
+                  <div className="text-sm text-[#888899]">Loading...</div>
+                ) : friendProfileMsg ? (
+                  <div className="text-sm text-[#e05555]">{friendProfileMsg}</div>
+                ) : friendProfile && (
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                      <div className="flex-shrink-0 w-16 h-16 rounded-full bg-[#2a2a4a] flex items-center justify-center text-3xl">
+                        🐱
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <span className="text-lg font-bold text-white">{friendProfile.username}</span>
+                          {statusBadge(friendProfile.status)}
+                        </div>
+                        <p className="text-sm text-[#888899] mt-1">
+                          {friendProfile.description || <span className="italic">No description yet.</span>}
+                        </p>
+                      </div>
+                      <div className="flex gap-4 sm:gap-6 text-center flex-shrink-0">
+                        {[
+                          { label: 'Wins',   value: friendProfile.wins,        color: 'text-[#55c48a]' },
+                          { label: 'Losses', value: friendProfile.losses,      color: 'text-[#e05555]' },
+                          { label: 'Score',  value: friendProfile.total_score, color: 'text-[#6c63ff]' },
+                        ].map(s => (
+                          <div key={s.label}>
+                            <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
+                            <div className="text-xs text-[#888899]">{s.label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="border-t border-[#2a2a4a] pt-4">
+                      <div className="text-sm font-semibold text-[#e8e8f0] mb-3">Game History</div>
+                      <div className="flex flex-col gap-2">
+                        {friendGames.length === 0 ? (
+                          <div className="text-center text-[#555566] py-6">No games played yet.</div>
+                        ) : (
+                          friendGames.map(gameHistoryCard)
+                        )}
+                      </div>
+
+                      {(friendGamePage > 0 || friendHasMoreGames) && (
+                        <div className="flex items-center justify-center gap-3 mt-4">
+                          <Button
+                            variant="secondary" size="sm"
+                            disabled={friendGamePage === 0}
+                            onClick={() => setFriendGamePage(p => p - 1)}
+                          >
+                            <ChevronLeft size={14} /> Prev
+                          </Button>
+                          <span className="text-sm text-[#888899]">Page {friendGamePage + 1}</span>
+                          <Button
+                            variant="secondary" size="sm"
+                            disabled={!friendHasMoreGames}
+                            onClick={() => setFriendGamePage(p => p + 1)}
+                          >
+                            Next <ChevronRight size={14} />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </Card>
             )}
 
           </div>

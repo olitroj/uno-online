@@ -31,8 +31,6 @@ import { Input } from '@/components/ui/Input'
 // Returns an error message string if the input is invalid, or '' if everything is fine.
 // Called before the register API request so we catch obvious mistakes immediately.
 function validateRegister(username: string, password: string, confirm: string): string {
-  if (username.length < 3)  return 'Username must be at least 3 characters.'
-  if (password.length < 6)  return 'Password must be at least 6 characters.'
   if (password !== confirm)  return 'Passwords do not match.'
   return ''
 }
@@ -144,8 +142,6 @@ export default function AuthPage() {
               label="Username"
               placeholder="Enter your username"
               required                  // HTML: blocks submit if empty
-              minLength={3}             // HTML: blocks submit if < 3 chars
-              maxLength={32}
               autoFocus
             />
             <Input
@@ -155,7 +151,6 @@ export default function AuthPage() {
               label="Password"
               placeholder="Enter your password"
               required
-              minLength={6}
             />
             <Button type="submit" size="lg" disabled={loading} className="mt-2 w-full">
               {loading ? 'Logging in…' : 'Login'}
@@ -170,12 +165,9 @@ export default function AuthPage() {
               id="username"
               name="username"
               label="Username"
-              placeholder="Choose a username (3–32 chars)"
+              placeholder="Choose a username"
               required
-              minLength={3}
-              maxLength={32}
               pattern="[A-Za-z0-9_]+"   // HTML: only allow letters, digits, underscore
-              title="Only letters, numbers, and underscores"
               autoFocus
             />
             <Input
@@ -183,9 +175,8 @@ export default function AuthPage() {
               name="password"
               type="password"
               label="Password"
-              placeholder="At least 6 characters"
+              placeholder="Choose a password"
               required
-              minLength={6}
             />
             <Input
               id="confirm"
@@ -194,7 +185,6 @@ export default function AuthPage() {
               label="Confirm Password"
               placeholder="Repeat your password"
               required
-              minLength={6}
             />
             <Button type="submit" size="lg" disabled={loading} className="mt-2 w-full">
               {loading ? 'Creating account…' : 'Create Account'}

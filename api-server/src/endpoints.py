@@ -27,7 +27,6 @@ async def post_me(username: str = Form(), password: str = Form()):
     except UniqueViolationError:
         raise HTTPException(409, "Conflicting username")
     aid = str(account_id.get("account_id"))
-    await db_execute("UPDATE Accounts SET status='online' WHERE account_id=$1::uuid;", aid)
     token = generate_jwt(aid)
     res = Response(status_code=201)
     res.set_cookie(key=JWT_NAME, value=token, httponly=True)
@@ -67,7 +66,7 @@ async def put_me(data: Any = Body(), account_id: str = Depends(get_current_user)
         assignments.append(f"password_hash=${len(values)}")
     if "status" in data:
         if not isinstance(data.get("status"), str) or data.get("status") not in [status.value for status in AccountStatus]:
-            raise HTTPException(400, "Status must be 'online', 'offline' or 'ingame'")
+            raise HTTPException(400, "Status must be 'online' or 'offline'")
         values.append(data.get("status"))
         assignments.append(f"status=${len(values)}")
     if "description" in data:
@@ -101,7 +100,6 @@ async def post_me_token(username: str = Form(), password: str = Form()):
     if account_id is None:
         raise HTTPException(401)
     aid = str(account_id.get("account_id"))
-    await db_execute("UPDATE Accounts SET status='online' WHERE account_id=$1::uuid;", aid)
     token = generate_jwt(aid)
     res = Response(status_code=200)
     res.set_cookie(key=JWT_NAME, value=token, httponly=True)
@@ -110,7 +108,6 @@ async def post_me_token(username: str = Form(), password: str = Form()):
 
 @app.delete("/me/token")
 async def delete_me_token(account_id: str = Depends(get_current_user)):
-    await db_execute("UPDATE Accounts SET status='offline' WHERE account_id=$1::uuid;", account_id)
     res = Response(status_code=204)
     res.delete_cookie(key=JWT_NAME)
     return res

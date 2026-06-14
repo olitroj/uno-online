@@ -3,7 +3,6 @@
 // A Badge is the coloured pill-shaped label used to show status information,
 // for example:
 //   ● online   (green)   — player is logged in
-//   ● in game  (yellow)  — player is currently playing
 //   ● offline  (grey)    — player is logged out
 //   Friends    (green)   — accepted friend
 //   Pending    (yellow)  — friend request waiting for response
@@ -12,7 +11,7 @@
 // Variants map to colour themes:
 //   default → grey    (offline, unknown)
 //   success → green   (online, win, friends)
-//   warning → orange  (in game, pending)
+//   warning → orange  (pending)
 //   danger  → red     (loss, rejected)
 //   info    → blue    (informational)
 

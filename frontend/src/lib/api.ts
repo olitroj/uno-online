@@ -30,6 +30,60 @@ import type { AccountInfo, Friend, GameRecord } from '@/types'
 // This avoids CORS issues during development.
 const BASE = '/api'
 
+function fallbackErrorMessage(status: number) {
+  if (status === 400) return 'The request could not be completed. Please check your input and try again.'
+  if (status === 401) return 'Please log in again.'
+  if (status === 403) return 'You do not have permission to do that.'
+  if (status === 404) return 'The requested item could not be found.'
+  if (status === 409) return 'That conflicts with existing data.'
+  return `Request failed with status ${status}.`
+}
+
+function validationErrorMessage(detail: unknown) {
+  if (!Array.isArray(detail)) return null
+
+  const messages = detail
+    .map(item => {
+      if (!item || typeof item !== 'object') return null
+      const record = item as Record<string, unknown>
+      return typeof record.msg === 'string' ? record.msg : null
+    })
+    .filter((message): message is string => Boolean(message))
+
+  if (messages.length === 0) return null
+  return `Please check your input: ${messages.join(', ')}.`
+}
+
+function isGenericErrorMessage(message: string) {
+  const normalized = message.trim().toLowerCase()
+  return normalized === 'bad request'
+    || normalized === 'unauthorized'
+    || normalized === 'forbidden'
+    || normalized === 'not found'
+    || normalized === 'internal server error'
+}
+
+async function errorMessageFromResponse(res: Response) {
+  const fallback = fallbackErrorMessage(res.status)
+  const text = await res.text().catch(() => '')
+  if (!text) return res.statusText || fallback
+
+  try {
+    const data = JSON.parse(text) as unknown
+    if (data && typeof data === 'object' && 'detail' in data) {
+      const detail = (data as { detail: unknown }).detail
+      if (typeof detail === 'string' && detail.trim()) {
+        return isGenericErrorMessage(detail) ? fallback : detail
+      }
+      return validationErrorMessage(detail) ?? fallback
+    }
+  } catch {
+    // Plain-text errors are fine to show directly.
+  }
+
+  return text || fallback
+}
+
 // ── Shared helper ─────────────────────────────────────────────────────────────
 
 // Sends a fetch request and returns the parsed JSON body.
@@ -40,9 +94,7 @@ async function apiFetch(path: string, options?: RequestInit) {
     ...options,
   })
   if (!res.ok) {
-    // Try to read the server's error message; fall back to the HTTP status text
-    const text = await res.text().catch(() => res.statusText)
-    throw new Error(text || `HTTP ${res.status}`)
+    throw new Error(await errorMessageFromResponse(res))
   }
   if (res.status === 204) return null   // 204 = success but no body to parse
   return res.json().catch(() => null)
@@ -133,4 +185,16 @@ export async function respondToFriend(username: string, action: 'accept' | 'reje
 // Removes an accepted friend, or cancels a pending outgoing request.
 export async function removeFriend(username: string) {
   await apiFetch(`/me/friends/${encodeURIComponent(username)}`, { method: 'DELETE' })
+}
+
+// ── Public Account Info ───────────────────────────────────────────────────
+
+// Returns a friend's public profile info by username
+export async function getAccountInfo(username: string): Promise<AccountInfo> {
+  return apiFetch(`/account/info/${encodeURIComponent(username)}`)
+}
+
+// Returns a friend's game history by username
+export async function getAccountGames(username: string, page = 0): Promise<GameRecord[]> {
+  return apiFetch(`/account/games/${encodeURIComponent(username)}?page=${page}`)
 }

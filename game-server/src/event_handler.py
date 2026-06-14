@@ -67,6 +67,72 @@ def ensure_deck() -> None:
         game_state.played_cards.clear()
         random.shuffle(game_state.deck)
 
+async def handle_turn_timeout() -> None:
+    """Check if current turn has timed out and auto-advance if needed."""
+    if game_state.stage != Stages.PLAY:
+        return
+    if game_state.turn_start_time is None:
+        return
+
+    elapsed = (datetime.now(timezone.utc) - game_state.turn_start_time).total_seconds()
+    print(f"TIMEOUT_ELAPSED: {elapsed:.1f}s / {game_state.config.timeout_sec}s")
+    if elapsed < game_state.config.timeout_sec:
+        return
+
+    print(f"TIMEOUT: Player {game_state.turn} timed out after {elapsed:.1f}s")
+
+    # Timeout occurred - find current player and add a card, then advance turn
+    current_player = next((p for p in game_state.players if p.player_id == game_state.turn), None)
+    if current_player is None:
+        return
+
+    hand = next((h for h in game_state.hands if h.player_id == current_player.player_id), None)
+    if hand is None:
+        return
+
+    # Draw one card for the timed-out player
+    ensure_deck()
+    drawn = []
+    if game_state.deck:
+        drawn_card = game_state.deck.pop()
+        drawn.append(drawn_card)
+        hand.cards.append(drawn_card)
+
+    current_player.score = score_for(current_player.player_id)
+    next_turn = get_next_pid()
+    game_state.turn = next_turn
+    game_state.turn_start_time = datetime.now(timezone.utc)
+
+    # Find the websocket for the timed-out player and send them the card
+    timed_out_ws = next((ws for ws in connections if ws.player.player_id == current_player.player_id), None)
+    if timed_out_ws:
+        draw_response = Event(
+            eventType=EventType.DRAW_CARDS,
+            messageType=MsgType.RESPONSE,
+            details={
+                "cards": [card_to_dict(c) for c in drawn],
+                "score": current_player.score,
+                "turn":  next_turn,
+            },
+        )
+        await timed_out_ws.conn.send(draw_response.json())
+
+    # Broadcast to all players
+    drew_event = Event(
+        eventType=EventType.DREW_CARDS,
+        messageType=MsgType.RESPONSE,
+        details={
+            "player_id": current_player.player_id,
+            "score":     current_player.score,
+            "count":     len(drawn),
+            "turn":      next_turn,
+        },
+    )
+    for ws in connections:
+        if ws != timed_out_ws:
+            await ws.conn.send(drew_event.json())
+
+
 async def save_game_result(winner_id: int) -> None:
     """Insert one Games row and one Participants row per player."""
     end_time = datetime.now(timezone.utc)
@@ -84,11 +150,10 @@ async def save_game_result(winner_id: int) -> None:
     # Insert a Participants record for every player
     for p in game_state.players:
         is_winner = (p.player_id == winner_id)
-        final_score = p.score if is_winner else 0
         await db_execute(
             """INSERT INTO Participants (account_id, game_id, score, win)
                VALUES ($1::uuid, $2, $3, $4)""",
-            p.account_id, game_id, final_score, is_winner
+            p.account_id, game_id, p.score, is_winner
         )
         await db_execute(
             "UPDATE Accounts SET status='online' WHERE account_id = $1::uuid",
@@ -135,11 +200,29 @@ async def event_handler(event: Event, sender: WsConnection = None):
     # ── PLAYER_LEAVE ──────────────────────────────────────────────────────────
     elif event.eventType == EventType.PLAYER_LEAVE:
         await state_lock.acquire()
-        event.messageType = MsgType.RESPONSE
-        for ws in connections:
-            if ws != sender:
-                await ws.conn.send(event.json())
-        state_lock.release()
+        try:
+            event.messageType = MsgType.RESPONSE
+            for ws in connections:
+                if ws != sender:
+                    await ws.conn.send(event.json())
+
+            if game_state.stage == Stages.PLAY and len(game_state.players) == 1:
+                winner = game_state.players[0]
+                game_state.stage = Stages.END
+
+                end_event = Event(
+                    eventType=EventType.GAME_END,
+                    messageType=MsgType.RESPONSE,
+                    details={"leaderboard": [player_to_dict(winner)]},
+                )
+                for ws in connections:
+                    await ws.conn.send(end_event.json())
+
+                await save_game_result(winner_id=winner.player_id)
+                print("GAME: ended - last remaining player wins")
+
+        finally:
+            state_lock.release()
 
     # ── GAME_START ────────────────────────────────────────────────────────────
     elif event.eventType == EventType.GAME_START:
@@ -164,11 +247,12 @@ async def event_handler(event: Event, sender: WsConnection = None):
             # Pick a random starting player
             starter = random.choice(game_state.players)
             game_state.turn = starter.player_id
+            game_state.turn_start_time = datetime.now(timezone.utc)
 
             # Mark all players as in-game
             for p in game_state.players:
                 await db_execute(
-                    "UPDATE Accounts SET status='ingame' WHERE account_id = $1::uuid",
+                    "UPDATE Accounts SET status='online' WHERE account_id = $1::uuid",
                     p.account_id
                 )
 
@@ -247,6 +331,7 @@ async def event_handler(event: Event, sender: WsConnection = None):
             game_state.pending_draw += 4
 
         game_state.turn = get_next_pid(skip=skip)
+        game_state.turn_start_time = datetime.now(timezone.utc)
 
         # Calculate the sender's current potential score
         sender.player.score = score_for(sender.player.player_id)
@@ -312,6 +397,7 @@ async def event_handler(event: Event, sender: WsConnection = None):
 
         sender.player.score = score_for(sender.player.player_id)
         game_state.turn = get_next_pid()   # drawing ends the turn
+        game_state.turn_start_time = datetime.now(timezone.utc)
 
         # Send the actual cards only to the player who drew
         draw_response = Event(

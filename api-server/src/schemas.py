@@ -4,7 +4,6 @@ from pydantic import BaseModel
 class AccountStatus(str, Enum):
     offline     = "offline"
     online      = "online"
-    ingame      = "ingame"
 
 class FriendStatus(str, Enum):
     accepted    = "accepted"

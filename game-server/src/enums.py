@@ -37,6 +37,7 @@ class EventType(Enum):
     PLAY_CARD       = "PLAY_CARD"
     DRAW_CARDS      = "DRAW_CARDS"
     DREW_CARDS      = "DREW_CARDS"
+    TURN_TIMEOUT    = "TURN_TIMEOUT"
     GAME_END        = "GAME_END"
     GAME_RESTART    = "GAME_RESTART"
     ERROR           = "ERROR"

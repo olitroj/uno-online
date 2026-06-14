@@ -37,7 +37,7 @@ export interface Player {
 // The current user's full profile (returned by GET /me/info)
 export interface AccountInfo {
   username: string
-  status: 'online' | 'offline' | 'ingame'
+  status: 'online' | 'offline'
   description: string | null    // optional bio text
   wins: number
   losses: number

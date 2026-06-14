@@ -1,4 +1,4 @@
-CREATE TYPE account_status AS ENUM ('online', 'offline', 'ingame');
+CREATE TYPE account_status AS ENUM ('online', 'offline');
 
 CREATE TYPE friend_status AS ENUM ('pending', 'accepted', 'rejected');
 
