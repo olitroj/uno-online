@@ -48,10 +48,18 @@ start_game_server() {
     cd ..
 }
 
+start_frontend() {
+    echo "Starting frontend"
+    cd ./frontend
+    npm run dev
+}
+
 setup() {
     python -m venv .venv
     source .venv/Scripts/activate
     pip install -r ./api-server/requirements.txt -r ./game-server/requirements.txt
+    cd ./frontend
+    npm install
 }
 
 help() {
