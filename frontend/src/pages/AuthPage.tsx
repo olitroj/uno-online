@@ -30,7 +30,7 @@ import { Input } from '@/components/ui/Input'
 
 // Returns an error message string if the input is invalid, or '' if everything is fine.
 // Called before the register API request so we catch obvious mistakes immediately.
-function validateRegister(username: string, password: string, confirm: string): string {
+function validateRegister(password: string, confirm: string): string {
   if (password !== confirm)  return 'Passwords do not match.'
   return ''
 }
@@ -75,7 +75,7 @@ export default function AuthPage() {
     const confirm  = (form.elements.namedItem('confirm')  as HTMLInputElement).value
 
     // JS validation layer — check before making any API call
-    const validationError = validateRegister(username, password, confirm)
+    const validationError = validateRegister(password, confirm)
     if (validationError) { setError(validationError); return }
 
     setError('')

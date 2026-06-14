@@ -1,6 +1,6 @@
 from asyncpg import create_pool, Pool, Record
 
-from main import POSTGRES_DB, POSTGRES_USER, POSTGRES_PASS
+from main import POSTGRES_DB, POSTGRES_USER, POSTGRES_PASS, POSTGRES_HOST
 
 conn_pool: Pool | None = None
 
@@ -10,7 +10,7 @@ async def init_db_conn():
         user=POSTGRES_USER,
         password=POSTGRES_PASS,
         database=POSTGRES_DB,
-        host="localhost"
+        host=POSTGRES_HOST
     )
 
 async def close_db_conn():

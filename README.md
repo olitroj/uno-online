@@ -65,4 +65,30 @@ http://localhost:8888
 The endpoint tests mock database calls, so they do not require --db flag.
 
 ## Deployment
-TBD
+Build the images with
+```sh
+docker compose build
+```
+
+Before starting the environment, create the following files under secrets/
+```
+fullchain.pem
+privkey.pem
+.db.env
+    - POSTGRES_USER
+    - POSTGRES_PASSWORD
+    - POSTGRES_DB
+.server.env
+    - DB_USER
+    - DB_PASS
+    - DB_NAME
+    - DB_HOST
+    - JWT_NAME
+    - JWT_SECRET
+    - JWT_SESSION_LENGTH
+```
+
+Start/Stop the environment with
+```sh
+docker compose up/down
+```

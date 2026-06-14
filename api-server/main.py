@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 POSTGRES_USER   = os.environ.get("DB_USER")
 POSTGRES_PASS   = os.environ.get("DB_PASS")
 POSTGRES_DB     = os.environ.get("DB_NAME")
+POSTGRES_HOST   = os.environ.get("DB_HOST")
 
 from src.db import init_db_conn, close_db_conn
 

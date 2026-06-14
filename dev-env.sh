@@ -8,6 +8,7 @@ start_db() {
     export DB_USER="test_user"
     export DB_PASS="test_password"
     export DB_NAME="uno_db"
+    export DB_HOST="localhost"
 
     echo "Starting PostgreSQL..."
 
@@ -49,6 +50,7 @@ start_game_server() {
 }
 
 start_frontend() {
+    export VITE_ENABLE_VITE_PROXY="true"
     echo "Starting frontend"
     cd ./frontend
     npm run dev
@@ -68,6 +70,7 @@ help() {
     echo -e "\trun - Run one of the following components"
     echo -e "\t\t- api - REST API server"
     echo -e "\t\t- game - Game server"
+    echo -e "\t\t- frontend - Frontend"
     echo -e "\ttest - Run unit tests"
     echo "Flags:"
     echo -e "\t--db - Run a PostgreSQL container alongside run command"
@@ -82,6 +85,8 @@ start() {
         start_api_server
     elif [[ "$1" == "game" ]]; then
         start_game_server
+    elif [[ "$1" == "frontend" ]]; then
+        start_frontend
     else
         help
     fi

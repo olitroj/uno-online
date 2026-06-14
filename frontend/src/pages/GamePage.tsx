@@ -65,7 +65,6 @@ export default function GamePage() {
   const { stage, myPlayerId, myHand, pile, currentColor, turn, pendingDraw, players, leaderboard, handSizes } = gameState
   const isMyTurn  = turn === myPlayerId
   const opponents = players.filter(p => p.player_id !== myPlayerId)  // everyone except me
-  const me        = players.find(p => p.player_id === myPlayerId)
 
   // Called when the player clicks a card in their hand
   function handleCardClick(card: Card) {

@@ -6,6 +6,7 @@ from asyncpg import Pool
 DB_USER = os.environ.get("DB_USER")
 DB_PASS = os.environ.get("DB_PASS")
 DB_NAME = os.environ.get("DB_NAME")
+DB_HOST = os.environ.get("DB_HOST")
 
 conn_pool: Pool | None = None
 
@@ -14,7 +15,7 @@ async def init_db_conn():
     global conn_pool
     if DB_USER and DB_PASS and DB_NAME:
         conn_pool = await asyncpg.create_pool(
-            user=DB_USER, password=DB_PASS, database=DB_NAME, host="localhost"
+            user=DB_USER, password=DB_PASS, database=DB_NAME, host=DB_HOST
         )
         print("DB: connected")
     else:

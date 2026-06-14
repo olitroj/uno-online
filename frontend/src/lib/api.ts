@@ -28,7 +28,10 @@ import type { AccountInfo, Friend, GameRecord } from '@/types'
 
 // All API calls go through Vite's proxy: /api → http://localhost:8000
 // This avoids CORS issues during development.
-const BASE = '/api'
+const BASE =
+  import.meta.env.VITE_ENABLE_VITE_PROXY === 'true'
+    ? '/api'
+    : ''
 
 function fallbackErrorMessage(status: number) {
   if (status === 400) return 'The request could not be completed. Please check your input and try again.'
