@@ -34,7 +34,11 @@ services:
     restart: unless-stopped
 
     env_file:
-      - ./secrets/.server.env
+      - ./secrets/.jwt.env
+      - ./secrets/.db.env
+
+    environment:
+      POSTGRES_HOST: postgres
 
     depends_on:
       postgres:
@@ -54,7 +58,11 @@ services:
     restart: unless-stopped
 
     env_file:
-      - ./secrets/.server.env
+      - ./secrets/.jwt.env
+      - ./secrets/.db.env
+
+    environment:
+      POSTGRES_HOST: postgres
 
     depends_on:
       postgres:
@@ -67,10 +75,10 @@ services:
       - app_network
 
 
-  frontend:
+  nginx:
     build:
       context: ./frontend
-    container_name: frontend
+    container_name: nginx
     restart: unless-stopped
 
     depends_on:

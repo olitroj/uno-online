@@ -26,13 +26,6 @@
 
 import type { AccountInfo, Friend, GameRecord } from '@/types'
 
-// All API calls go through Vite's proxy: /api → http://localhost:8000
-// This avoids CORS issues during development.
-const BASE =
-  import.meta.env.VITE_ENABLE_VITE_PROXY === 'true'
-    ? '/api'
-    : ''
-
 function fallbackErrorMessage(status: number) {
   if (status === 400) return 'The request could not be completed. Please check your input and try again.'
   if (status === 401) return 'Please log in again.'
@@ -92,7 +85,7 @@ async function errorMessageFromResponse(res: Response) {
 // Sends a fetch request and returns the parsed JSON body.
 // Throws an Error with the server's error message if the response is not OK (2xx).
 async function apiFetch(path: string, options?: RequestInit) {
-  const res = await fetch(BASE + path, {
+  const res = await fetch(path, {
     credentials: 'include',  // send the auth cookie with every request
     ...options,
   })

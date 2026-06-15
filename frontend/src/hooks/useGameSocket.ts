@@ -67,13 +67,7 @@ export function useGameSocket() {
     if (didConnectRef.current) return  // already ran — skip the second mount
     didConnectRef.current = true
 
-    // The URL '/game' goes through Vite's proxy to ws://localhost:8080
-    // The browser automatically sends the auth cookie with the WebSocket handshake
-    const BASE =
-      import.meta.env.VITE_ENABLE_VITE_PROXY === 'true'
-        ? '/ws'
-        : '/game'
-    const ws = new WebSocket(BASE)
+    const ws = new WebSocket("/game")
     wsRef.current = ws
 
     ws.onopen  = () => setConnected(true)

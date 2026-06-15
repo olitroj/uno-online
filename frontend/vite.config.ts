@@ -10,18 +10,20 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      // REST API calls like /api/me -> http://localhost:8000/me
-      '/api': {
+      '/me': {
         target: 'http://localhost:8000',
         changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/api/, ''),
       },
-      // WebSocket game server
-      '/ws': {
+
+      '/accounts': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+
+      '/game': {
         target: 'ws://localhost:8080',
         ws: true,
         changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/ws/, ''),
       },
     },
   },

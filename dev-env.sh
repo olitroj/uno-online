@@ -5,18 +5,18 @@ export JWT_SECRET="9bxhAgLv4W5PhW4VNglCj4KQjEmLnLZy" # Temporary for development
 export JWT_SESSION_LENGTH=7200
 
 start_db() {
-    export DB_USER="test_user"
-    export DB_PASS="test_password"
-    export DB_NAME="uno_db"
-    export DB_HOST="localhost"
+    export POSTGRES_USER="test_user"
+    export POSTGRES_PASSWORD="test_password"
+    export POSTGRES_DB="uno_db"
+    export POSTGRES_HOST="localhost"
 
     echo "Starting PostgreSQL..."
 
     docker run \
         --name pg \
-        -e POSTGRES_USER=$DB_USER \
-        -e POSTGRES_PASSWORD=$DB_PASS \
-        -e POSTGRES_DB=$DB_NAME\
+        -e POSTGRES_USER=$POSTGRES_USER \
+        -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
+        -e POSTGRES_DB=$POSTGRES_DB \
         -v ./db/init.sql:/docker-entrypoint-initdb.d/init.sql \
         -v ./db/seed.sql:/seed.sql \
         -p 5432:5432 \
@@ -29,12 +29,12 @@ start_db() {
     done
 
     if [[ db_exists -eq 0 ]]; then
-        docker exec pg psql "postgresql://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME" -f /seed.sql
+        docker exec pg psql "postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:5432/$POSTGRES_DB" -f /seed.sql
     fi
 }
 
 start_api_server() {
-    export SPEC_PATH="../docs/rest_specification.json"
+    export ENABLE_SWAGGER_UI="true"
     echo "Starting api-server..."
     cd ./api-server
     uvicorn main:app --reload
@@ -50,7 +50,6 @@ start_game_server() {
 }
 
 start_frontend() {
-    export VITE_ENABLE_VITE_PROXY="true"
     echo "Starting frontend"
     cd ./frontend
     npm run dev
