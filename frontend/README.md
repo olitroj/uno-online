@@ -8,63 +8,46 @@ A real-time multiplayer UNO card game with a cat theme, built with React + TypeS
 
 - **Node.js** v20+
 - **Python** 3.12+
-- **PostgreSQL** 15+
+- **Docker** (for the PostgreSQL database)
 
 ---
 
-## Environment Variables
+## First-time Setup
 
-Set these before starting the API server and game server (both must share the same JWT values):
-
-```bash
-export DB_USER=postgres
-export DB_PASS=your_password
-export DB_NAME=catunoapp
-export JWT_NAME=auth_token
-export JWT_SECRET=change_me_to_a_long_random_string
-export JWT_SESSION_LENGTH=86400
-```
-
----
-
-## Database Setup (run once)
+Run this once from the project root to create the virtual environment and install all dependencies:
 
 ```bash
-psql -U postgres -c "CREATE DATABASE catunoapp;"
-psql -U postgres -d catunoapp -f db/init.sql
-psql -U postgres -d catunoapp -f db/seed.sql   # optional test data
+./dev-env.sh setup
+source .venv/bin/activate
 ```
 
 ---
 
 ## Running the Application
 
-Open **3 terminals** at the same time:
+Open **3 terminals** from the project root:
 
-### Terminal 1 — API Server (port 8000)
+### Terminal 1 — Database + API Server (port 8000)
 
 ```bash
-cd api-server
-source ../venv/bin/activate
-pip install -r requirements.txt   # first time only
-python3 main.py
+source .venv/bin/activate
+./dev-env.sh start api --db
 ```
 
-### Terminal 2 — Game Server (port 8080)
+> The `--db` flag starts a PostgreSQL Docker container first, then launches the API server.  
+> Make sure Docker is running before this step.
+
+### Terminal 2 — Game Server
 
 ```bash
-cd game-server
-source ../venv/bin/activate
-pip install -r requirements.txt   # first time only
-python3 main.py
+source .venv/bin/activate
+./dev-env.sh start game
 ```
 
 ### Terminal 3 — Frontend (port 5173)
 
 ```bash
-cd frontend
-npm install   # first time only
-npm run dev
+./dev-env.sh start frontend
 ```
 
 Open **http://localhost:5173** in your browser.  
@@ -106,6 +89,8 @@ Use two tabs or two different browsers to test multiplayer.
 
 ```
 webapp-proj/
+├── dev-env.sh     Helper script (setup / start / test)
+├── .venv/         Shared Python virtual environment
 ├── api-server/    REST API (FastAPI, Python)
 ├── game-server/   WebSocket game server (Python)
 ├── db/            SQL schema and seed data
