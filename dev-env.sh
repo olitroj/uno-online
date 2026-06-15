@@ -4,12 +4,12 @@ export JWT_NAME="access_token"
 export JWT_SECRET="9bxhAgLv4W5PhW4VNglCj4KQjEmLnLZy" # Temporary for development, don't worry ;)
 export JWT_SESSION_LENGTH=7200
 
-start_db() {
-    export POSTGRES_USER="test_user"
-    export POSTGRES_PASSWORD="test_password"
-    export POSTGRES_DB="uno_db"
-    export POSTGRES_HOST="localhost"
+export POSTGRES_USER="test_user"
+export POSTGRES_PASSWORD="test_password"
+export POSTGRES_DB="uno_db"
+export POSTGRES_HOST="localhost"
 
+start_db() {
     echo "Starting PostgreSQL..."
 
     docker run \
@@ -49,8 +49,8 @@ start_game_server() {
     cd ..
 }
 
-start_frontend() {
-    echo "Starting frontend"
+start_ui() {
+    echo "Starting UI"
     cd ./frontend
     npm run dev
 }
@@ -64,12 +64,12 @@ setup() {
 }
 
 help() {
-    echo "usage: ./dev-env.sh [setup|run|test] [api|game] [--db]"
+    echo "usage: ./dev-env.sh [setup|run|test] [api|game|ui] [--db]"
     echo -e "\tsetup - Creates venv, download dependencies"
     echo -e "\trun - Run one of the following components"
     echo -e "\t\t- api - REST API server"
     echo -e "\t\t- game - Game server"
-    echo -e "\t\t- frontend - Frontend"
+    echo -e "\t\t- ui - Frontend UI server"
     echo -e "\ttest - Run unit tests"
     echo "Flags:"
     echo -e "\t--db - Run a PostgreSQL container alongside run command"
@@ -84,8 +84,8 @@ start() {
         start_api_server
     elif [[ "$1" == "game" ]]; then
         start_game_server
-    elif [[ "$1" == "frontend" ]]; then
-        start_frontend
+    elif [[ "$1" == "ui" ]]; then
+        start_ui
     else
         help
     fi

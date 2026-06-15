@@ -7,82 +7,72 @@
 API Server manages account creation, friending, and viewing player statistics and game history. Game server hosts game lobbies via websockets.
 
 ## Requirements
-- Python 3.13 or compatible Python 3 version
-- Docker, for running PostgreSQL locally
-- `pip`
+- Python 3.12 and pip
+- Node 22 and npm
+- Docker for running Postgres locally
+- Docker compose for deployment
+- CA certificate and private key pair for deployment
 
 ## Configuration
-
 The project components require values from environment variables:
 ```sh
-export JWT_NAME="access_token"
-export JWT_SECRET="9bxhAgLv4W5PhW4VNglCj4KQjEmLnLZy"
-export JWT_SESSION_LENGTH=7200
+export JWT_NAME=""
+export JWT_SECRET=""
+export JWT_SESSION_LENGTH=
 
-export DB_USER="test_user"
-export DB_PASS="test_password"
-export DB_NAME="uno_db"
+export POSTGRES_USER=""
+export POSTGRES_PASSWORD=""
+export POSTGRES_DB=""
 ```
 
-`dev-env.sh` exports the these environment variables automatically.
+When running locally `dev-env.sh` automatically exports these environment variables. \
+When deploying, make sure to set these variables in `.env` in the project directory.
 
 ## Setting up local environment
-This creates a python virtual environment and downloads all required dependencie
+This sets up the python and node environments by downloading all required dependencies
 ```sh
 ./dev-env.sh setup
 ```
 
 ## Running local environment
-To start an individual component:\
-NOTE: Database container isn't automatically deleted when the script ends, remove it with `docker stop pg`.
+To start an individual component:
 ```sh
-./dev-env.sh start [api|game] [--db]
+./dev-env.sh start [api|game|ui] [--db]
 ```
+NOTE: Database container isn't automatically deleted when the script ends, remove it with `docker stop pg`.
 
-The REST API is served at:
-```text
-API server
-http://localhost:8000
+The components are served on the following ports:
+- REST API Server: http://localhost:8000
+    - Swagger UI: http://localhost:8000/docs
+- Gamer Server: ws://localhost:8080
+    - Test Client: http://localhost:8888
 
-Swagger UI
-http://localhost:8000/docs
-```
-
-The Game is served at:
-```text
-Game server
-ws://localhost:8080
-
-Test client
-http://localhost:8888
-```
+- Frontend UI: http://localhost:5173
 
 ## Run Tests
-
 ```sh
 ./dev-env.sh test
 ```
-The endpoint tests mock database calls, so they do not require --db flag.
+The endpoint tests mock database calls, so they do not require a running database. The `--db` flag can be omitted.
 
 ## Deployment
-Build the images with
+First build the docker images:
 ```sh
 docker compose build
 ```
 
-Before starting the environment, create the following files under secrets/
+Then, before starting the environment, create the previously mentioned environment variables and certificate/key files in the project directory:
 - fullchain.pem
 - privkey.pem
-- .db.env
-    - POSTGRES_USER
-    - POSTGRES_PASSWORD
-    - POSTGRES_DB
-- .jwt.env
-    - JWT_NAME
-    - JWT_SECRET
-    - JWT_SESSION_LENGTH
+- .env
 
-Start/Stop the environment with
+HINT: To generate a self-signed certificate use this command:
 ```sh
-docker compose up/down
+openssl req -x509 -newkey rsa:4096 -nodes -keyout privkey.pem -out fullchain.pem
+```
+
+Finally, start/stop the environment with:
+```sh
+docker compose up
+docker compose down
 ```

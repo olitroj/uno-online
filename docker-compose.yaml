@@ -5,102 +5,86 @@ services:
     image: postgres:16-alpine
     container_name: postgres
     restart: unless-stopped
-
-    env_file:
-      - ./secrets/.db.env
-
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-
     ports:
       - "5432:5432"
-
     networks:
       - app_network
-
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U appuser -d appdb"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
       start_period: 10s
-
 
   api-server:
     build:
       context: ./api-server
     container_name: api-server
     restart: unless-stopped
-
-    env_file:
-      - ./secrets/.jwt.env
-      - ./secrets/.db.env
-
     environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_HOST: postgres
-
+      JWT_NAME: ${JWT_NAME}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_SESSION_LENGTH: ${JWT_SESSION_LENGTH}
     depends_on:
       postgres:
         condition: service_healthy
-
     ports:
       - "8000:8000"
-
     networks:
       - app_network
-
 
   game-server:
     build:
       context: ./game-server
     container_name: game-server
     restart: unless-stopped
-
-    env_file:
-      - ./secrets/.jwt.env
-      - ./secrets/.db.env
-
     environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_HOST: postgres
-
+      JWT_NAME: ${JWT_NAME}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_SESSION_LENGTH: ${JWT_SESSION_LENGTH}
     depends_on:
       postgres:
         condition: service_healthy
-
     ports:
       - "8080:8080"
-
     networks:
       - app_network
-
 
   nginx:
     build:
       context: ./frontend
     container_name: nginx
     restart: unless-stopped
-
     depends_on:
       - api-server
       - game-server
-
     ports:
       - "80:80"
       - "443:443"
-
     volumes:
-      - ./secrets/fullchain.pem:/etc/nginx/ssl/fullchain.pem:ro
-      - ./secrets/privkey.pem:/etc/nginx/ssl/privkey.pem:ro
-
+      - ./fullchain.pem:/etc/nginx/ssl/fullchain.pem:ro
+      - ./privkey.pem:/etc/nginx/ssl/privkey.pem:ro
     networks:
       - app_network
-
 
 networks:
   app_network:
     driver: bridge
-
 
 volumes:
   postgres_data:
