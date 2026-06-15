@@ -71,22 +71,16 @@ docker compose build
 ```
 
 Before starting the environment, create the following files under secrets/
-```
-fullchain.pem
-privkey.pem
-.db.env
+- fullchain.pem
+- privkey.pem
+- .db.env
     - POSTGRES_USER
     - POSTGRES_PASSWORD
     - POSTGRES_DB
-.server.env
-    - DB_USER
-    - DB_PASS
-    - DB_NAME
-    - DB_HOST
+- .jwt.env
     - JWT_NAME
     - JWT_SECRET
     - JWT_SESSION_LENGTH
-```
 
 Start/Stop the environment with
 ```sh
