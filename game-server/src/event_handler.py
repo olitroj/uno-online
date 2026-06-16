@@ -5,19 +5,25 @@ from .objects import *
 from .globals import *
 from .db import db_query_one, db_execute
 
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def card_to_dict(card: Card) -> dict:
     """Convert a Card dataclass to a plain dict (Enum values as strings)."""
     return {
         "card_id": card.card_id,
-        "kind":    card.kind.value,
-        "color":   card.color.value,
+        "kind": card.kind.value,
+        "color": card.color.value,
     }
 
+
 def player_to_dict(player: Player) -> dict:
-    return {"player_id": player.player_id, "username": player.username, "score": player.score}
+    return {
+        "player_id": player.player_id,
+        "username": player.username,
+        "score": player.score,
+    }
+
 
 def card_score(card: Card) -> int:
     """Point value of a card (used when calculating the winner's score)."""
@@ -26,10 +32,19 @@ def card_score(card: Card) -> int:
     if card.kind in (Kind.SKIP, Kind.REVERSE, Kind.DRAW2):
         return 20
     number_map = {
-        Kind.ZERO: 0, Kind.ONE: 1, Kind.TWO: 2, Kind.THREE: 3, Kind.FOUR: 4,
-        Kind.FIVE: 5, Kind.SIX: 6, Kind.SEVEN: 7, Kind.EIGHT: 8, Kind.NINE: 9,
+        Kind.ZERO: 0,
+        Kind.ONE: 1,
+        Kind.TWO: 2,
+        Kind.THREE: 3,
+        Kind.FOUR: 4,
+        Kind.FIVE: 5,
+        Kind.SIX: 6,
+        Kind.SEVEN: 7,
+        Kind.EIGHT: 8,
+        Kind.NINE: 9,
     }
     return number_map.get(card.kind, 0)
+
 
 def is_playable(card: Card) -> bool:
     """Return True if the card can legally be played on the current pile."""
@@ -41,15 +56,19 @@ def is_playable(card: Card) -> bool:
         return True
     return False
 
+
 def get_next_pid(skip: bool = False) -> int:
     """Return the player_id whose turn comes next. skip=True advances by 2."""
     players = game_state.players
     if not players:
         return -1
-    current_idx = next((i for i, p in enumerate(players) if p.player_id == game_state.turn), 0)
+    current_idx = next(
+        (i for i, p in enumerate(players) if p.player_id == game_state.turn), 0
+    )
     step = 2 if skip else 1
     next_idx = (current_idx + game_state.direction * step) % len(players)
     return players[next_idx].player_id
+
 
 def score_for(player_id: int) -> int:
     """Sum of all cards in opponents' hands — the potential win score."""
@@ -60,12 +79,14 @@ def score_for(player_id: int) -> int:
         if h.player_id != player_id
     )
 
+
 def ensure_deck() -> None:
     """If the draw deck is empty, reshuffle the played cards back into it."""
     if not game_state.deck and game_state.played_cards:
         game_state.deck = game_state.played_cards[:]
         game_state.played_cards.clear()
         random.shuffle(game_state.deck)
+
 
 async def handle_turn_timeout() -> None:
     """Check if current turn has timed out and auto-advance if needed."""
@@ -82,11 +103,15 @@ async def handle_turn_timeout() -> None:
     print(f"TIMEOUT: Player {game_state.turn} timed out after {elapsed:.1f}s")
 
     # Timeout occurred - find current player and add a card, then advance turn
-    current_player = next((p for p in game_state.players if p.player_id == game_state.turn), None)
+    current_player = next(
+        (p for p in game_state.players if p.player_id == game_state.turn), None
+    )
     if current_player is None:
         return
 
-    hand = next((h for h in game_state.hands if h.player_id == current_player.player_id), None)
+    hand = next(
+        (h for h in game_state.hands if h.player_id == current_player.player_id), None
+    )
     if hand is None:
         return
 
@@ -104,7 +129,10 @@ async def handle_turn_timeout() -> None:
     game_state.turn_start_time = datetime.now(timezone.utc)
 
     # Find the websocket for the timed-out player and send them the card
-    timed_out_ws = next((ws for ws in connections if ws.player.player_id == current_player.player_id), None)
+    timed_out_ws = next(
+        (ws for ws in connections if ws.player.player_id == current_player.player_id),
+        None,
+    )
     if timed_out_ws:
         draw_response = Event(
             eventType=EventType.DRAW_CARDS,
@@ -112,7 +140,7 @@ async def handle_turn_timeout() -> None:
             details={
                 "cards": [card_to_dict(c) for c in drawn],
                 "score": current_player.score,
-                "turn":  next_turn,
+                "turn": next_turn,
             },
         )
         await timed_out_ws.conn.send(draw_response.json())
@@ -123,9 +151,9 @@ async def handle_turn_timeout() -> None:
         messageType=MsgType.RESPONSE,
         details={
             "player_id": current_player.player_id,
-            "score":     current_player.score,
-            "count":     len(drawn),
-            "turn":      next_turn,
+            "score": current_player.score,
+            "count": len(drawn),
+            "turn": next_turn,
         },
     )
     for ws in connections:
@@ -141,7 +169,8 @@ async def save_game_result(winner_id: int) -> None:
     # Create the game record and get the generated game_id back
     row = await db_query_one(
         "INSERT INTO Games (start_time, end_time) VALUES ($1, $2) RETURNING game_id",
-        start_time, end_time
+        start_time,
+        end_time,
     )
     if row is None:
         return  # DB not available
@@ -149,19 +178,23 @@ async def save_game_result(winner_id: int) -> None:
 
     # Insert a Participants record for every player
     for p in game_state.players:
-        is_winner = (p.player_id == winner_id)
+        is_winner = p.player_id == winner_id
         await db_execute(
             """INSERT INTO Participants (account_id, game_id, score, win)
                VALUES ($1::uuid, $2, $3, $4)""",
-            p.account_id, game_id, p.score, is_winner
+            p.account_id,
+            game_id,
+            p.score,
+            is_winner,
         )
         await db_execute(
             "UPDATE Accounts SET status='online' WHERE account_id = $1::uuid",
-            p.account_id
+            p.account_id,
         )
 
 
 # ── Main event handler ────────────────────────────────────────────────────────
+
 
 async def event_handler(event: Event, sender: WsConnection = None):
     print(f"EVENT: {event.eventType.value}")
@@ -226,7 +259,7 @@ async def event_handler(event: Event, sender: WsConnection = None):
 
     # ── GAME_START ────────────────────────────────────────────────────────────
     elif event.eventType == EventType.GAME_START:
-        await asyncio.sleep(3)   # small countdown before game begins
+        await asyncio.sleep(3)  # small countdown before game begins
         await state_lock.acquire()
         enough_players = 2 <= len(game_state.players) <= game_state.config.max_players
         if enough_players and game_state.stage == Stages.INTERMISSION:
@@ -238,7 +271,13 @@ async def event_handler(event: Event, sender: WsConnection = None):
             # Keep drawing the first pile card until it's a number (avoid starting on an action)
             while True:
                 game_state.pile = game_state.deck.pop()
-                if game_state.pile.kind.value not in ("SKIP", "REVERSE", "DRAW2", "WILD", "DRAW4"):
+                if game_state.pile.kind.value not in (
+                    "SKIP",
+                    "REVERSE",
+                    "DRAW2",
+                    "WILD",
+                    "DRAW4",
+                ):
                     break
                 game_state.played_cards.append(game_state.pile)
 
@@ -253,19 +292,21 @@ async def event_handler(event: Event, sender: WsConnection = None):
             for p in game_state.players:
                 await db_execute(
                     "UPDATE Accounts SET status='online' WHERE account_id = $1::uuid",
-                    p.account_id
+                    p.account_id,
                 )
 
             # Send GAME_START to each player with their own hand
             for ws in connections:
-                hand = next(h for h in game_state.hands if h.player_id == ws.player.player_id)
+                hand = next(
+                    h for h in game_state.hands if h.player_id == ws.player.player_id
+                )
                 start_event = Event(
                     eventType=EventType.GAME_START,
                     messageType=MsgType.RESPONSE,
                     details={
-                        "pile":  card_to_dict(game_state.pile),
-                        "turn":  game_state.turn,
-                        "hand":  {
+                        "pile": card_to_dict(game_state.pile),
+                        "turn": game_state.turn,
+                        "hand": {
                             "player_id": hand.player_id,
                             "cards": [card_to_dict(c) for c in hand.cards],
                         },
@@ -289,12 +330,19 @@ async def event_handler(event: Event, sender: WsConnection = None):
             state_lock.release()
             return
 
-        card_id   = event.details.get("card_id")
+        card_id = event.details.get("card_id")
         new_color = event.details.get("new_color", "NONE")
 
         # Find the card in the sender's hand
-        hand = next((h for h in game_state.hands if h.player_id == sender.player.player_id), None)
-        card = next((c for c in hand.cards if c.card_id == card_id), None) if hand else None
+        hand = next(
+            (h for h in game_state.hands if h.player_id == sender.player.player_id),
+            None,
+        )
+        card = (
+            next((c for c in hand.cards if c.card_id == card_id), None)
+            if hand
+            else None
+        )
 
         if card is None or not is_playable(card):
             # Silently ignore — card may have already been played (double-click race)
@@ -341,10 +389,10 @@ async def event_handler(event: Event, sender: WsConnection = None):
             eventType=EventType.PLAY_CARD,
             messageType=MsgType.RESPONSE,
             details={
-                "player_id":    sender.player.player_id,
-                "score":        sender.player.score,
-                "card":         card_to_dict(card),
-                "turn":         game_state.turn,
+                "player_id": sender.player.player_id,
+                "score": sender.player.score,
+                "card": card_to_dict(card),
+                "turn": game_state.turn,
                 "current_color": game_state.current_color,
                 "pending_draw": game_state.pending_draw,
             },
@@ -355,7 +403,15 @@ async def event_handler(event: Event, sender: WsConnection = None):
         # Check win condition
         if len(hand.cards) == 0:
             game_state.stage = Stages.END
-            leaderboard = sorted(game_state.players, key=lambda p: p.score, reverse=True)
+            # Winner is always first. Losers are sorted by their score after.
+            # from when they last played — those can exceed the winner's final score.
+            winner = sender.player
+            losers = sorted(
+                [p for p in game_state.players if p.player_id != winner.player_id],
+                key=lambda p: p.score,
+                reverse=True,
+            )
+            leaderboard = [winner] + losers
             end_event = Event(
                 eventType=EventType.GAME_END,
                 messageType=MsgType.RESPONSE,
@@ -391,12 +447,15 @@ async def event_handler(event: Event, sender: WsConnection = None):
                 drawn.append(game_state.deck.pop())
 
         # Add drawn cards to the player's hand
-        hand = next((h for h in game_state.hands if h.player_id == sender.player.player_id), None)
+        hand = next(
+            (h for h in game_state.hands if h.player_id == sender.player.player_id),
+            None,
+        )
         if hand:
             hand.cards.extend(drawn)
 
         sender.player.score = score_for(sender.player.player_id)
-        game_state.turn = get_next_pid()   # drawing ends the turn
+        game_state.turn = get_next_pid()  # drawing ends the turn
         game_state.turn_start_time = datetime.now(timezone.utc)
 
         # Send the actual cards only to the player who drew
@@ -406,7 +465,7 @@ async def event_handler(event: Event, sender: WsConnection = None):
             details={
                 "cards": [card_to_dict(c) for c in drawn],
                 "score": sender.player.score,
-                "turn":  game_state.turn,
+                "turn": game_state.turn,
             },
         )
         await sender.conn.send(draw_response.json())
@@ -417,9 +476,9 @@ async def event_handler(event: Event, sender: WsConnection = None):
             messageType=MsgType.RESPONSE,
             details={
                 "player_id": sender.player.player_id,
-                "score":     sender.player.score,
-                "count":     len(drawn),
-                "turn":      game_state.turn,
+                "score": sender.player.score,
+                "count": len(drawn),
+                "turn": game_state.turn,
             },
         )
         for ws in connections:
@@ -450,6 +509,7 @@ async def event_handler(event: Event, sender: WsConnection = None):
 
 # ── Deck creation ─────────────────────────────────────────────────────────────
 
+
 def create_handout_deck():
     """Build a standard 108-card UNO deck, shuffle it, and deal starting hands."""
     card_id = 0
@@ -469,13 +529,17 @@ def create_handout_deck():
         for k in Kind:
             if k in (Kind.WILD, Kind.DRAW4, Kind.ZERO):
                 continue
-            deck.append(Card(card_id, k, c)); card_id += 1
-            deck.append(Card(card_id, k, c)); card_id += 1
+            deck.append(Card(card_id, k, c))
+            card_id += 1
+            deck.append(Card(card_id, k, c))
+            card_id += 1
 
     # Four Wild and four Wild Draw 4 cards
     for _ in range(4):
-        deck.append(Card(card_id, Kind.WILD,  Colors.NONE)); card_id += 1
-        deck.append(Card(card_id, Kind.DRAW4, Colors.NONE)); card_id += 1
+        deck.append(Card(card_id, Kind.WILD, Colors.NONE))
+        card_id += 1
+        deck.append(Card(card_id, Kind.DRAW4, Colors.NONE))
+        card_id += 1
 
     random.shuffle(deck)
 
