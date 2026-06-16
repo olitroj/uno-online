@@ -1,26 +1,11 @@
-// pages/AuthPage.tsx — LOGIN AND REGISTER PAGE (route: "/")
+// pages/AuthPage.tsx — Login and Register page (route: "/")
 //
-// This is the first screen the user sees. It has two tabs: Login and Register.
-// Switching tabs just changes which form is visible — the component does not unmount.
+// Two tabs: Login and Register. Switching tabs doesn't unmount the component.
+// Validation uses HTML attributes (required, minLength, pattern) plus validateRegister()
+// which runs before the API call to catch things HTML can't (e.g. passwords must match).
 //
-// FORM VALIDATION (teacher requirement):
-//   We use TWO layers of validation:
-//
-//   Layer 1 — HTML attributes on the <input> elements:
-//     required      → the browser blocks form submission if the field is empty
-//     minLength={3} → browser blocks if fewer than 3 characters
-//     maxLength={32} → browser stops the user from typing past 32 characters
-//     pattern="[A-Za-z0-9_]+" → browser validates with this regex (letters, digits, _)
-//     type="password" → browser hides the characters
-//
-//   Layer 2 — JavaScript inside validateRegister():
-//     Checks things HTML attributes can't check, like "do the two passwords match?".
-//     Returns an error string if invalid, or '' (empty string) if valid.
-//     We check this BEFORE calling the API so we don't waste a network request.
-//
-// FLOW:
-//   Login:    fill form → handleLogin() → login() API → navigate('/home')
-//   Register: fill form → validateRegister() → register() API → login() API → navigate('/home')
+// Login:    fill form → handleLogin() → login() → navigate('/home')
+// Register: fill form → validateRegister() → register() → login() → navigate('/home')
 
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -28,8 +13,7 @@ import { login, register } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
-// Returns an error message string if the input is invalid, or '' if everything is fine.
-// Called before the register API request so we catch obvious mistakes immediately.
+// Returns an error string if invalid, or '' if valid. Called before the API request.
 function validateRegister(password: string, confirm: string): string {
   if (password.length < 6)   return 'Password must be at least 8 characters.'
   if (password !== confirm)  return 'Passwords do not match.'

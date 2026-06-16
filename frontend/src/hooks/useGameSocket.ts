@@ -1,28 +1,8 @@
-// hooks/useGameSocket.ts — WEBSOCKET GAME LOGIC HOOK.
+// hooks/useGameSocket.ts — WebSocket connection and all game state.
 //
-// A React "hook" is a function that starts with "use" and can use React features
-// like state (useState) and side effects (useEffect). This hook manages the entire
-// WebSocket connection to the game server and all game state on the client side.
-//
-// WHY a hook? The GamePage component only needs to know:
-//   - What is the current game state? (gameState)
-//   - How do I play a card? (playCard)
-//   - How do I draw? (drawCards)
-//   - How do I start the game? (startGame)
-// All the messy WebSocket connection code is hidden inside this hook.
-//
-// HOW WEBSOCKETS WORK:
-//   Unlike normal HTTP (ask → answer), a WebSocket is a two-way persistent
-//   connection. Once opened, the server can send us messages at any time
-//   (e.g. "your opponent played a card"). We also send messages to the server.
-//   Both sides send JSON strings like:
-//     { "eventType": "PLAY_CARD", "messageType": "REQUEST", "details": {...} }
-//
-// STATE MANAGEMENT:
-//   We never get a "full game snapshot" from the server. Instead we receive
-//   individual events (GAME_START, PLAY_CARD, DREW_CARDS, etc.) and update
-//   the local gameState object incrementally. This is why the state has many
-//   fields — each event only updates part of it.
+// Manages the WebSocket to the game server and exposes gameState + action functions.
+// The server never sends a full snapshot — we receive individual events and update
+// state incrementally, which is why gameState has many separate fields.
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { GameState, Card, CardColor } from '@/types'
@@ -49,20 +29,13 @@ export function useGameSocket() {
   // connected tracks whether the WebSocket is currently open
   const [connected, setConnected] = useState(false)
 
-  // useRef stores values that persist across re-renders WITHOUT causing a re-render.
-  // wsRef — we keep the WebSocket object here so event handlers can access it
   const wsRef = useRef<WebSocket | null>(null)
-  // myPlayerIdRef — we need to read our own player_id inside onmessage handlers.
-  // Using a ref (not state) means we always read the latest value even inside
-  // stale closures (a common React pitfall with async event handlers).
+  // Ref (not state) so onmessage handlers always read the latest player_id without stale closures.
   const myPlayerIdRef = useRef<number | null>(null)
-  // didConnectRef — prevents React's development double-effect from opening two sockets.
-  // In development React runs useEffect twice; the second run would open a second
-  // WebSocket connection and the server would reject it as "already connected".
+  // Prevents React's dev-mode double-effect from opening two WebSocket connections.
   const didConnectRef = useRef(false)
 
-  // useEffect runs ONCE after the component mounts ([] = no dependencies = run once).
-  // This is where we open the WebSocket connection.
+  // Open the WebSocket once on mount.
   useEffect(() => {
     if (didConnectRef.current) return  // already ran — skip the second mount
     didConnectRef.current = true
@@ -240,10 +213,6 @@ export function useGameSocket() {
   }
 
   // ── Actions — functions that send a message to the game server ────────────
-
-  // useCallback ensures the function reference is stable across re-renders.
-  // Without it, every render would create a new function object, which could
-  // cause unnecessary re-renders in child components that receive it as a prop.
 
   // Send: play one card from our hand (optionally with a chosen colour for Wild/Draw4)
   const playCard = useCallback((cardId: number, newColor: CardColor = 'NONE') => {

@@ -1,45 +1,32 @@
-// pages/HomePage.tsx — THE HOME PAGE (route: "/home")
+// pages/HomePage.tsx — Home page (route: "/home")
 //
-// This is the main hub after login. It has three sections:
-//   1. Profile card  — shows username, status, wins/losses/score, description
-//   2. Friends tab   — friend list with search + pagination + add/accept/remove
-//   3. History tab   — paginated game history
+// Three sections: profile card, friends tab, game history tab.
 //
-// PAGINATION + FILTERING (teacher requirement):
-//   Friends list supports BOTH at the same time:
-//   - Search box filters by username (sent to server as ?search=...)
-//   - Pagination divides the results into pages of 20
-//   - When the search narrows results, the page count shrinks automatically
-//   - Changing the search resets to page 0 (first page of the new results)
-//
-//   How we know the total pages:
-//     1. getFriendsCount(search) → how many friends match the filter total
-//     2. totalFriendPages = Math.ceil(total / PAGE_SIZE)
-//     3. If search reduces the count from 45 to 3, pages drop from 3 to 1
-//
-// STATE — React's useState stores data that, when changed, causes the UI to re-render.
-//   Each useState() call returns [currentValue, setterFunction].
-//   e.g.  const [tab, setTab] = useState('friends')
-//         setTab('history')  → React re-renders and tab is now 'history'
-//
-// EFFECTS — useEffect runs code "after" the component renders, usually for API calls.
-//   useEffect(fn, [dep1, dep2]) — runs fn whenever dep1 or dep2 changes.
-//   useEffect(fn, []) — runs fn only once when the component first mounts.
+// Friends list supports search + pagination together:
+//   - Search filters by username (?search=...) and resets to page 0 on change
+//   - Total page count comes from getFriendsCount() so it shrinks when search narrows results
 
-import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
+import { Card, CardTitle } from '@/components/ui/Card'
+import { Input } from '@/components/ui/Input'
 import {
-  getMyInfo, updateMyInfo, deleteAccount, logout,
-  getMyGames, getFriends, getFriendsCount,
-  sendFriendRequest, respondToFriend, removeFriend,
-  getAccountInfo, getAccountGames,
+  deleteAccount,
+  getAccountGames,
+  getAccountInfo,
+  getFriends, getFriendsCount,
+  getMyGames,
+  getMyInfo,
+  logout,
+  removeFriend,
+  respondToFriend,
+  sendFriendRequest,
+  updateMyInfo,
 } from '@/lib/api'
 import type { AccountInfo, Friend, GameRecord } from '@/types'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Badge } from '@/components/ui/Badge'
-import { Card, CardTitle } from '@/components/ui/Card'
-import { LogOut, Play, UserPlus, ChevronLeft, ChevronRight, Trash2, CheckCircle, XCircle, Trophy } from 'lucide-react'
+import { CheckCircle, ChevronLeft, ChevronRight, LogOut, Play, Trash2, Trophy, UserPlus, XCircle } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 // How many friends to show per page
 const PAGE_SIZE = 20
@@ -89,10 +76,8 @@ export default function HomePage() {
     }).catch(() => navigate('/'))
   }, [navigate])
 
-  // ── Reload friends whenever page or search changes ─────────────────────────
-  // useCallback memoises this function so the useEffect below doesn't loop.
-  // Without useCallback, a new function object would be created every render,
-  // making the effect think its dependency changed, causing an infinite loop.
+  // useCallback prevents an infinite loop: without it, a new function object is created
+  // every render, making useEffect think its dependency changed and re-running endlessly.
   const loadFriends = useCallback(async () => {
     try {
       // Run both API calls at the same time (parallel) with Promise.all
@@ -109,9 +94,7 @@ export default function HomePage() {
 
   useEffect(() => { loadFriends() }, [loadFriends])
 
-  // When the search text changes, always go back to page 0.
-  // Without this, you could be on page 3 of "all friends", type a search that
-  // only has 1 page of results, and see an empty page 3 instead of page 1.
+  // Reset to page 0 whenever search changes so you don't land on an empty page.
   useEffect(() => { setFriendPage(0) }, [friendSearch])
 
   // ── Reload game history whenever page changes ──────────────────────────────
@@ -119,7 +102,7 @@ export default function HomePage() {
     try {
       const list = await getMyGames(gamePage)
       setGames(list)
-      // If we got a full page (20 items), there's probably a next page
+      // If we got a full page, there's probably a next page
       setHasMoreGames(list.length === PAGE_SIZE)
     } catch {
       /* ignore — history failure doesn't break the page */
@@ -258,8 +241,6 @@ export default function HomePage() {
 
   // ── Derived values ─────────────────────────────────────────────────────────
 
-  // Total number of pages for the current friend search
-  // Math.ceil rounds up: 21 friends / 20 per page = 2 pages (not 1.05)
   const totalFriendPages = Math.ceil(friendTotal / PAGE_SIZE)
 
   // ── Badge helpers ──────────────────────────────────────────────────────────
@@ -322,7 +303,6 @@ export default function HomePage() {
             <span className="font-black text-white text-lg">Cat UNO</span>
           </div>
           <div className="flex items-center gap-3">
-            {/* hidden sm:block — username only visible on screens wider than 640px */}
             <span className="text-sm text-[#888899] hidden sm:block">{profile.username}</span>
             <Button variant="ghost" size="sm" onClick={handleLogout}>
               <LogOut size={14} /> Logout
@@ -672,7 +652,6 @@ export default function HomePage() {
                       {g.win ? 'Victory' : 'Defeat'}
                     </div>
                     <div className="text-xs text-[#888899]">
-                      {/* toLocaleDateString() formats the ISO date into a readable local date */}
                       {new Date(g.start_time).toLocaleDateString()} · Score: {g.score}
                     </div>
                   </div>

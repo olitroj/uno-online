@@ -1,24 +1,13 @@
-// pages/GamePage.tsx — THE GAME BOARD (route: "/game")
+// pages/GamePage.tsx — Game board (route: "/game")
 //
-// This page has three visual "stages" controlled by gameState.stage:
+// Three stages controlled by gameState.stage:
+//   'waiting' — lobby: player list and Start Game button
+//   'playing' — game board: opponents, draw/discard piles, your hand
+//   'ended'   — results overlay with leaderboard
 //
-//   'waiting' — lobby screen: shows players in the lobby and a "Start Game" button
-//   'playing' — active game board: opponents' cards, draw pile, discard pile, your hand
-//   'ended'   — results overlay: leaderboard with medals and score
-//
-// All game logic and WebSocket communication is in useGameSocket.ts.
-// This file only handles what to SHOW and what to DO when the user clicks something.
-//
-// CLIENT-SIDE PLAYABILITY CHECK (isPlayable):
-//   The server enforces the real rules, but we also check on the client so we can
-//   highlight playable cards (green glow) and block clicks on unplayable ones.
-//   This makes the UI feel responsive — no network round-trip needed to grey out cards.
-//
-// WILD CARD FLOW:
-//   1. Player clicks a Wild or Draw4 card
-//   2. We store it in pendingWild state and show the colour picker dialog
-//   3. Player picks a colour → handleColorPick() → playCard(cardId, chosenColor)
-//   4. The colour picker closes (pendingWild = null)
+// Game logic and WebSocket state live in useGameSocket.ts.
+// isPlayable() mirrors the server rules so we can highlight valid cards client-side
+// without a network round-trip.
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -36,9 +25,7 @@ const WILD_COLORS: { color: CardColor; bg: string; label: string }[] = [
   { color: 'YELLOW', bg: 'bg-yellow-400', label: '🟡 Yellow' },
 ]
 
-// Returns true if the given card can legally be played right now.
-// This mirrors the server-side is_playable() in event_handler.py so the UI
-// stays in sync with the server rules without an extra network call.
+// Returns true if the card can legally be played right now.
 function isPlayable(card: Card, pileColor: CardColor, pileKind: string, pendingDraw: number): boolean {
   // If there is a pending +2/+4 penalty, the player MUST draw — no playing allowed
   if (pendingDraw > 0) return false
@@ -54,17 +41,14 @@ function isPlayable(card: Card, pileColor: CardColor, pileKind: string, pendingD
 export default function GamePage() {
   const navigate = useNavigate()
 
-  // Get game state and action functions from the WebSocket hook
   const { gameState, playCard, drawCards, startGame, error, connected } = useGameSocket()
 
-  // If the player clicks a Wild/Draw4, store it here while showing the colour picker.
-  // null = colour picker is closed.
+  // Stores a Wild/Draw4 card while the colour picker is open; null = picker closed.
   const [pendingWild, setPendingWild] = useState<Card | null>(null)
 
-  // Destructure the game state into individual variables for easier use below
   const { stage, myPlayerId, myHand, pile, currentColor, turn, pendingDraw, players, leaderboard, handSizes } = gameState
   const isMyTurn  = turn === myPlayerId
-  const opponents = players.filter(p => p.player_id !== myPlayerId)  // everyone except me
+  const opponents = players.filter(p => p.player_id !== myPlayerId)
 
   // Called when the player clicks a card in their hand
   function handleCardClick(card: Card) {
