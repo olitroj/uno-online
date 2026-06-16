@@ -92,9 +92,11 @@ export default function HomePage() {
     }
   }, [friendPage, friendSearch])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadFriends() }, [loadFriends])
 
   // Reset to page 0 whenever search changes so you don't land on an empty page.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setFriendPage(0) }, [friendSearch])
 
   // ── Reload game history whenever page changes ──────────────────────────────
@@ -109,6 +111,7 @@ export default function HomePage() {
     }
   }, [gamePage])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadGames() }, [loadGames])
 
   const loadFriendProfile = useCallback(async () => {

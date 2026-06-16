@@ -35,36 +35,6 @@ export function useGameSocket() {
   // Prevents React's dev-mode double-effect from opening two WebSocket connections.
   const didConnectRef = useRef(false)
 
-  // Open the WebSocket once on mount.
-  useEffect(() => {
-    if (didConnectRef.current) return  // already ran — skip the second mount
-    didConnectRef.current = true
-
-    const ws = new WebSocket("/game")
-    wsRef.current = ws
-
-    ws.onopen  = () => setConnected(true)
-    ws.onclose = () => { setConnected(false); didConnectRef.current = false }
-    ws.onerror = () => setError('Connection to game server failed. Make sure the game server is running on port 8080.')
-
-    // Every time the server sends us a message, parse the JSON and handle the event
-    ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data as string)
-        handleServerEvent(msg)
-      } catch {
-        console.error('Could not parse server message', event.data)
-      }
-    }
-
-    // Cleanup: close the socket when the component unmounts (e.g. navigate away)
-    return () => {
-      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-        ws.close()
-      }
-    }
-  }, [])
-
   // ── Event handler — called for every message from the server ──────────────
 
   function handleServerEvent(msg: { eventType: string; details: Record<string, unknown> }) {
@@ -211,6 +181,36 @@ export function useGameSocket() {
       return
     }
   }
+
+  // Open the WebSocket once on mount.
+  useEffect(() => {
+    if (didConnectRef.current) return  // already ran — skip the second mount
+    didConnectRef.current = true
+
+    const ws = new WebSocket("/game")
+    wsRef.current = ws
+
+    ws.onopen  = () => setConnected(true)
+    ws.onclose = () => { setConnected(false); didConnectRef.current = false }
+    ws.onerror = () => setError('Connection to game server failed. Make sure the game server is running on port 8080.')
+
+    // Every time the server sends us a message, parse the JSON and handle the event
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data as string)
+        handleServerEvent(msg)
+      } catch {
+        console.error('Could not parse server message', event.data)
+      }
+    }
+
+    // Cleanup: close the socket when the component unmounts (e.g. navigate away)
+    return () => {
+      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+        ws.close()
+      }
+    }
+  }, [])
 
   // ── Actions — functions that send a message to the game server ────────────
 
