@@ -6,7 +6,7 @@ A real-time multiplayer UNO card game with a cat theme, built with React + TypeS
 
 ## Prerequisites
 
-- **Node.js** v20+
+- **Node.js** v22+
 - **Python** 3.12+
 - **Docker** (for the PostgreSQL database)
 
@@ -18,24 +18,33 @@ Run this once from the project root to create the virtual environment and instal
 
 ```bash
 ./dev-env.sh setup
-source .venv/bin/activate
 ```
+
+This creates a `.venv/` folder and installs all Python and Node packages.
 
 ---
 
 ## Running the Application
 
-Open **3 terminals** from the project root:
+Open **3 terminals** from the project root. Activate the Python virtual environment in each terminal that runs a Python server:
 
-### Terminal 1 — Database + API Server (port 8000)
+```bash
+source .venv/bin/activate   # macOS / Linux
+```
+
+### Terminal 1 — Database + API Server
 
 ```bash
 source .venv/bin/activate
 ./dev-env.sh start api --db
 ```
 
-> The `--db` flag starts a PostgreSQL Docker container first, then launches the API server.  
-> Make sure Docker is running before this step.
+> The `--db` flag starts a PostgreSQL Docker container first, waits for it to be ready, then starts the API server.  
+> Make sure Docker is running before this step.  
+> To stop the database later: `docker stop pg`
+
+- REST API: http://localhost:8000
+- Swagger UI: http://localhost:8000/docs
 
 ### Terminal 2 — Game Server
 
@@ -44,14 +53,34 @@ source .venv/bin/activate
 ./dev-env.sh start game
 ```
 
-### Terminal 3 — Frontend (port 5173)
+- WebSocket: `ws://localhost:8080`
+- Test client (browser UI for raw WebSocket testing): http://localhost:8888
+
+### Terminal 3 — Frontend
 
 ```bash
-./dev-env.sh start frontend
+./dev-env.sh start ui
 ```
+
+- App: http://localhost:5173
+
+The frontend proxies API and WebSocket requests automatically:
+- `/me`, `/accounts` → API server at port 8000
+- `/game` (WebSocket) → Game server at port 8080
 
 Open **http://localhost:5173** in your browser.  
 Use two tabs or two different browsers to test multiplayer.
+
+---
+
+## Run Tests
+
+```bash
+source .venv/bin/activate
+./dev-env.sh test
+```
+
+Tests mock database calls, so no running database is needed.
 
 ---
 
@@ -94,6 +123,7 @@ webapp-proj/
 ├── api-server/    REST API (FastAPI, Python)
 ├── game-server/   WebSocket game server (Python)
 ├── db/            SQL schema and seed data
+├── docs/          Architecture diagrams and API specs
 └── frontend/      React + TypeScript app (this folder)
     └── src/
         ├── main.tsx                  Entry point

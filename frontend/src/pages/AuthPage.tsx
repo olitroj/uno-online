@@ -31,6 +31,7 @@ import { Input } from '@/components/ui/Input'
 // Returns an error message string if the input is invalid, or '' if everything is fine.
 // Called before the register API request so we catch obvious mistakes immediately.
 function validateRegister(password: string, confirm: string): string {
+  if (password.length < 6)   return 'Password must be at least 8 characters.'
   if (password !== confirm)  return 'Passwords do not match.'
   return ''
 }
@@ -177,6 +178,8 @@ export default function AuthPage() {
               label="Password"
               placeholder="Choose a password"
               required
+              minLength={6}
+              maxLength={64}
             />
             <Input
               id="confirm"
@@ -185,6 +188,8 @@ export default function AuthPage() {
               label="Confirm Password"
               placeholder="Repeat your password"
               required
+              minLength={6}
+              maxLength={64}
             />
             <Button type="submit" size="lg" disabled={loading} className="mt-2 w-full">
               {loading ? 'Creating account…' : 'Create Account'}
